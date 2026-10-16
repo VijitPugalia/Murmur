@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using Murmur.App.ViewModels;
 using Murmur.Core.Interfaces;
 using Murmur.Core.Models;
@@ -1037,6 +1037,65 @@ public class SettingsViewModelTests
         Assert.Contains(vm.PostProcessingModes, m => m.Mode == PostProcessingMode.Cleanup);
         Assert.Contains(vm.PostProcessingModes, m => m.Mode == PostProcessingMode.Proofread);
         Assert.Contains(vm.PostProcessingModes, m => m.Mode == PostProcessingMode.Custom);
+    }
+
+    #endregion
+
+    #region Custom Hotkey Builder Tests
+
+    [Fact]
+    public void ApplyPresetHotkeyCommand_WithCtrlWin_SetsHoldHotkeyToCtrlWin()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+
+        // Act
+        vm.ApplyPresetHotkeyCommand.Execute("Ctrl+Win");
+
+        // Assert
+        Assert.Equal(ModifierKeys.Ctrl | ModifierKeys.Win, vm.HoldHotkey.Modifiers);
+        Assert.Equal(VirtualKey.None, vm.HoldHotkey.Key);
+        Assert.Equal("Ctrl+Win", vm.HoldHotkeyDisplay);
+    }
+
+    [Fact]
+    public void ApplyCustomHotkeyCommand_AppliesSelectedModifiersAndKey()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        vm.CustomTargetIsHold = true;
+        vm.CustomCtrl = true;
+        vm.CustomAlt = true;
+        vm.CustomWin = false;
+        vm.CustomShift = false;
+        var spaceOption = vm.AvailableKeys.First(k => k.Value == VirtualKey.Space);
+        vm.SelectedCustomKey = spaceOption;
+
+        // Act
+        vm.ApplyCustomHotkeyCommand.Execute(null);
+
+        // Assert
+        Assert.Equal(ModifierKeys.Ctrl | ModifierKeys.Alt, vm.HoldHotkey.Modifiers);
+        Assert.Equal(VirtualKey.Space, vm.HoldHotkey.Key);
+        Assert.Equal("Ctrl+Alt+Space", vm.HoldHotkeyDisplay);
+    }
+
+    [Fact]
+    public void ResetHotkeysCommand_ResetsHoldToCtrlWinAndToggleToCtrlAltSpace()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+
+        // Act
+        vm.ResetHotkeysCommand.Execute(null);
+
+        // Assert
+        Assert.Equal(ModifierKeys.Ctrl | ModifierKeys.Win, vm.HoldHotkey.Modifiers);
+        Assert.Equal(VirtualKey.None, vm.HoldHotkey.Key);
+        Assert.Equal("Ctrl+Win", vm.HoldHotkeyDisplay);
+        Assert.Equal(ModifierKeys.Ctrl | ModifierKeys.Alt, vm.ToggleHotkey.Modifiers);
+        Assert.Equal(VirtualKey.Space, vm.ToggleHotkey.Key);
+        Assert.Equal("Ctrl+Alt+Space", vm.ToggleHotkeyDisplay);
     }
 
     #endregion

@@ -1,10 +1,11 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Windows.Input;
 using Murmur.Core.Interfaces;
 using Murmur.Core.Models;
 using Murmur.Core.Services;
+using CoreModifierKeys = Murmur.Core.Models.ModifierKeys;
 
 namespace Murmur.App.ViewModels;
 
@@ -221,6 +222,141 @@ public class SettingsViewModel : ViewModelBase, IDisposable
     {
         get => _toggleHotkeyDisplay;
         set => SetProperty(ref _toggleHotkeyDisplay, value);
+    }
+
+    // Custom Hotkey Builder Properties
+    private bool _customTargetIsHold = true;
+    public bool CustomTargetIsHold
+    {
+        get => _customTargetIsHold;
+        set
+        {
+            if (SetProperty(ref _customTargetIsHold, value))
+            {
+                OnPropertyChanged(nameof(CustomTargetIsToggle));
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+            }
+        }
+    }
+
+    public bool CustomTargetIsToggle
+    {
+        get => !_customTargetIsHold;
+        set
+        {
+            if (value != !_customTargetIsHold)
+            {
+                _customTargetIsHold = !value;
+                OnPropertyChanged(nameof(CustomTargetIsHold));
+                OnPropertyChanged(nameof(CustomTargetIsToggle));
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+            }
+        }
+    }
+
+    private bool _customCtrl = true;
+    public bool CustomCtrl
+    {
+        get => _customCtrl;
+        set
+        {
+            if (SetProperty(ref _customCtrl, value))
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+        }
+    }
+
+    private bool _customWin = true;
+    public bool CustomWin
+    {
+        get => _customWin;
+        set
+        {
+            if (SetProperty(ref _customWin, value))
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+        }
+    }
+
+    private bool _customAlt;
+    public bool CustomAlt
+    {
+        get => _customAlt;
+        set
+        {
+            if (SetProperty(ref _customAlt, value))
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+        }
+    }
+
+    private bool _customShift;
+    public bool CustomShift
+    {
+        get => _customShift;
+        set
+        {
+            if (SetProperty(ref _customShift, value))
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+        }
+    }
+
+    public IReadOnlyList<KeyOption> AvailableKeys { get; } = InitializeAvailableKeys();
+
+    private KeyOption? _selectedCustomKey;
+    public KeyOption? SelectedCustomKey
+    {
+        get => _selectedCustomKey ?? AvailableKeys[0];
+        set
+        {
+            if (SetProperty(ref _selectedCustomKey, value))
+                OnPropertyChanged(nameof(CustomHotkeyPreview));
+        }
+    }
+
+    public string CustomHotkeyPreview
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (CustomCtrl) parts.Add("Ctrl");
+            if (CustomWin) parts.Add("Win");
+            if (CustomAlt) parts.Add("Alt");
+            if (CustomShift) parts.Add("Shift");
+
+            var key = _selectedCustomKey ?? AvailableKeys[0];
+            if (key.Value != VirtualKey.None)
+            {
+                parts.Add(key.Display);
+            }
+
+            return parts.Count > 0 ? string.Join("+", parts) : "(None)";
+        }
+    }
+
+    private static IReadOnlyList<KeyOption> InitializeAvailableKeys()
+    {
+        var list = new List<KeyOption>
+        {
+            new("(None - Modifiers Only)", VirtualKey.None),
+            new("Space", VirtualKey.Space),
+        };
+
+        for (char c = 'A'; c <= 'Z'; c++)
+        {
+            list.Add(new(c.ToString(), Enum.Parse<VirtualKey>(c.ToString())));
+        }
+
+        for (int i = 0; i <= 9; i++)
+        {
+            list.Add(new(i.ToString(), Enum.Parse<VirtualKey>("D" + i)));
+        }
+
+        for (int i = 1; i <= 12; i++)
+        {
+            list.Add(new("F" + i, Enum.Parse<VirtualKey>("F" + i)));
+        }
+
+        list.Add(new("Tab", VirtualKey.Tab));
+        list.Add(new("Backtick / Tilde (~)", VirtualKey.OemTilde));
+        return list;
     }
 
     // Post-processing Settings
@@ -470,6 +606,10 @@ public class SettingsViewModel : ViewModelBase, IDisposable
     public ICommand RecordHoldHotkeyCommand { get; }
     public ICommand RecordToggleHotkeyCommand { get; }
     public ICommand ValidateApiKeyCommand { get; }
+    public ICommand ApplyCustomHotkeyCommand { get; }
+    public ICommand ApplyPresetHotkeyCommand { get; }
+    public ICommand ResetHotkeysCommand { get; }
+    public ICommand CancelRecordHotkeyCommand { get; }
 
     #endregion
 
@@ -509,6 +649,10 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         RecordHoldHotkeyCommand = new RelayCommand(StartRecordHoldHotkey);
         RecordToggleHotkeyCommand = new RelayCommand(StartRecordToggleHotkey);
         ValidateApiKeyCommand = new RelayCommand(async () => await ValidateApiKeyWithApiAsync(), CanValidateApiKey);
+        ApplyCustomHotkeyCommand = new RelayCommand(ApplyCustomHotkey);
+        ApplyPresetHotkeyCommand = new RelayCommand(p => ApplyPresetHotkey(p as string));
+        ResetHotkeysCommand = new RelayCommand(ResetHotkeys);
+        CancelRecordHotkeyCommand = new RelayCommand(CancelRecordHotkey);
 
         // Load settings
         _originalSettings = _settingsManager.Load();
@@ -536,6 +680,10 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         RecordHoldHotkeyCommand = new RelayCommand(() => { });
         RecordToggleHotkeyCommand = new RelayCommand(() => { });
         ValidateApiKeyCommand = new RelayCommand(() => { });
+        ApplyCustomHotkeyCommand = new RelayCommand(() => { });
+        ApplyPresetHotkeyCommand = new RelayCommand(_ => { });
+        ResetHotkeysCommand = new RelayCommand(() => { });
+        CancelRecordHotkeyCommand = new RelayCommand(() => { });
 
         // Set some design-time data
         ApiBaseUrl = "https://api.groq.com/openai/v1";
@@ -1006,6 +1154,83 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         AutoSaveAndApplySettings();
     }
 
+    private void ApplyCustomHotkey()
+    {
+        var mods = CoreModifierKeys.None;
+        if (CustomCtrl) mods |= CoreModifierKeys.Ctrl;
+        if (CustomWin) mods |= CoreModifierKeys.Win;
+        if (CustomAlt) mods |= CoreModifierKeys.Alt;
+        if (CustomShift) mods |= CoreModifierKeys.Shift;
+
+        var key = SelectedCustomKey?.Value ?? VirtualKey.None;
+
+        if (mods == CoreModifierKeys.None && key == VirtualKey.None)
+        {
+            return;
+        }
+
+        var binding = new HotkeyBinding { Modifiers = mods, Key = key };
+        var type = CustomTargetIsHold ? HotkeyType.Hold : HotkeyType.Toggle;
+        SetRecordedHotkey(type, binding);
+    }
+
+    private void ApplyPresetHotkey(string? preset)
+    {
+        if (string.IsNullOrEmpty(preset)) return;
+
+        switch (preset)
+        {
+            case "Ctrl+Win":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, 
+                    Key = VirtualKey.None 
+                });
+                break;
+            case "Ctrl+Shift+Space":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Shift, 
+                    Key = VirtualKey.Space 
+                });
+                break;
+            case "Alt+Space":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.Alt, 
+                    Key = VirtualKey.Space 
+                });
+                break;
+            case "Ctrl+Alt+Space":
+                SetRecordedHotkey(HotkeyType.Toggle, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, 
+                    Key = VirtualKey.Space 
+                });
+                break;
+        }
+    }
+
+    private void ResetHotkeys()
+    {
+        SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+        { 
+            Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, 
+            Key = VirtualKey.None 
+        });
+        SetRecordedHotkey(HotkeyType.Toggle, new HotkeyBinding 
+        { 
+            Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, 
+            Key = VirtualKey.Space 
+        });
+    }
+
+    private void CancelRecordHotkey()
+    {
+        HoldHotkeyDisplay = HoldHotkey.ToString();
+        ToggleHotkeyDisplay = ToggleHotkey.ToString();
+    }
+
     /// <summary>
     /// Event raised when settings have been saved and should be applied immediately.
     /// </summary>
@@ -1266,3 +1491,9 @@ internal class ApiKeyPattern
         MaxLength = maxLength;
     }
 }
+
+/// <summary>
+/// Display item for virtual key selection in settings UI.
+/// </summary>
+public record KeyOption(string Display, VirtualKey Value);
+

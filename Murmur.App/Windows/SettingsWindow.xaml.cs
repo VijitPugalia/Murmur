@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -180,17 +180,25 @@ public partial class SettingsWindow : Window
         Focus();
     }
 
+    private CoreModifierKeys GetCurrentModifiers()
+    {
+        var modifiers = CoreModifierKeys.None;
+        if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
+            modifiers |= CoreModifierKeys.Ctrl;
+        if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt) || Keyboard.IsKeyDown(Key.System))
+            modifiers |= CoreModifierKeys.Alt;
+        if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+            modifiers |= CoreModifierKeys.Shift;
+        if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin))
+            modifiers |= CoreModifierKeys.Win;
+        return modifiers;
+    }
+
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
 
         if (!_isRecordingHotkey) return;
-
-        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
-            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
-            e.Key == Key.LeftShift || e.Key == Key.RightShift ||
-            e.Key == Key.LWin || e.Key == Key.RWin || e.Key == Key.System)
-            return;
 
         if (e.Key == Key.Escape)
         {
@@ -199,22 +207,33 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        var modifiers = CoreModifierKeys.None;
-        if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
-            modifiers |= CoreModifierKeys.Ctrl;
-        if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt))
-            modifiers |= CoreModifierKeys.Alt;
-        if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
-            modifiers |= CoreModifierKeys.Shift;
-        if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin))
-            modifiers |= CoreModifierKeys.Win;
+        var modifiers = GetCurrentModifiers();
+
+        // If a modifier key itself is pressed down, update display with live held modifiers
+        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
+            e.Key == Key.LeftShift || e.Key == Key.RightShift ||
+            e.Key == Key.LWin || e.Key == Key.RWin || e.Key == Key.System)
+        {
+            var displayText = modifiers != CoreModifierKeys.None
+                ? $"{new HotkeyBinding { Modifiers = modifiers, Key = VirtualKey.None }} (Release or press key)"
+                : "Press keys...";
+
+            if (_recordingHotkeyType == HotkeyType.Hold)
+                _viewModel.HoldHotkeyDisplay = displayText;
+            else
+                _viewModel.ToggleHotkeyDisplay = displayText;
+
+            e.Handled = true;
+            return;
+        }
 
         if (modifiers == CoreModifierKeys.None)
         {
             if (_recordingHotkeyType == HotkeyType.Hold)
-                _viewModel.HoldHotkeyDisplay = "Need modifier!";
+                _viewModel.HoldHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
             else
-                _viewModel.ToggleHotkeyDisplay = "Need modifier!";
+                _viewModel.ToggleHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
             e.Handled = true;
             return;
         }
@@ -234,6 +253,35 @@ public partial class SettingsWindow : Window
         _viewModel.SetRecordedHotkey(_recordingHotkeyType, binding);
         _isRecordingHotkey = false;
         e.Handled = true;
+    }
+
+    protected override void OnPreviewKeyUp(KeyEventArgs e)
+    {
+        base.OnPreviewKeyUp(e);
+
+        if (!_isRecordingHotkey) return;
+
+        // If the user released a modifier key (e.g. Win or Ctrl)
+        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
+            e.Key == Key.LeftShift || e.Key == Key.RightShift ||
+            e.Key == Key.LWin || e.Key == Key.RWin || e.Key == Key.System)
+        {
+            var modifiers = GetCurrentModifiers();
+            // Include the key that was just released into the modifier set
+            if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) modifiers |= CoreModifierKeys.Ctrl;
+            if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt || e.Key == Key.System) modifiers |= CoreModifierKeys.Alt;
+            if (e.Key == Key.LeftShift || e.Key == Key.RightShift) modifiers |= CoreModifierKeys.Shift;
+            if (e.Key == Key.LWin || e.Key == Key.RWin) modifiers |= CoreModifierKeys.Win;
+
+            if (modifiers != CoreModifierKeys.None)
+            {
+                var binding = new HotkeyBinding { Modifiers = modifiers, Key = VirtualKey.None };
+                _viewModel.SetRecordedHotkey(_recordingHotkeyType, binding);
+                _isRecordingHotkey = false;
+                e.Handled = true;
+            }
+        }
     }
 
     private void CancelHotkeyRecording()

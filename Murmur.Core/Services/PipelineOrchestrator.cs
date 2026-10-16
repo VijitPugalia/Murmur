@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Murmur.Core.Interfaces;
 using Murmur.Core.Models;
 using InputSimulatorStandard;
@@ -108,7 +108,12 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
         
         lock (_stateLock)
         {
-            if (_currentState != PipelineState.Idle)
+            if (_currentState == PipelineState.Error)
+            {
+                DebugLogger.Log($"  Recovering from Error state, resetting to Idle before start\n");
+                _currentState = PipelineState.Idle;
+            }
+            else if (_currentState != PipelineState.Idle)
             {
                 DebugLogger.Log($"  Already in state {_currentState}, throwing\n");
                 throw new InvalidOperationException(
@@ -170,7 +175,7 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
             {
                 if (_initializationTcs != null)
                 {
-                    await Task.WhenAny(_initializationTcs.Task, Task.Delay(3000));
+                    await Task.WhenAny(_initializationTcs.Task, Task.Delay(1000));
                 }
             }
             catch
@@ -182,7 +187,11 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
 
         if (currentState != PipelineState.Recording)
         {
-            DebugLogger.Log("  Not recording, returning early\n");
+            DebugLogger.Log($"  Not recording (currentState={currentState}), ensuring reset to Idle\n");
+            if (currentState == PipelineState.Initializing || currentState == PipelineState.Error)
+            {
+                HandleCancellation();
+            }
             return;
         }
 

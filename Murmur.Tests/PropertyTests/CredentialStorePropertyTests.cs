@@ -1,4 +1,4 @@
-﻿using Murmur.Core.Interfaces;
+using Murmur.Core.Interfaces;
 using Murmur.Core.Services;
 
 namespace Murmur.Tests.PropertyTests;
@@ -174,15 +174,12 @@ public class CredentialStorePropertyTests : IDisposable
     /// </summary>
     private static Gen<string> GenerateApiKeyWithSpecialChars()
     {
-        // Characters commonly found in API keys
         var apiKeyChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_".ToCharArray();
-        
-        // Common API key prefixes
         var prefixes = new[] { "sk-", "gsk_", "api_", "key-", "" };
 
         return from prefix in Gen.Elements(prefixes)
-               from chars in Gen.ArrayOf(Gen.Elements(apiKeyChars))
-                   .Where(c => c.Length >= 8 && c.Length <= 128)
+               from len in Gen.Choose(8, 48)
+               from chars in Gen.ArrayOf(len, Gen.Elements(apiKeyChars))
                select prefix + new string(chars);
     }
 
@@ -194,9 +191,9 @@ public class CredentialStorePropertyTests : IDisposable
     {
         var validChars = "abcdefghijklmnopqrstuvwxyz0123456789_".ToCharArray();
 
-        return Gen.ArrayOf(Gen.Elements(validChars))
-            .Where(chars => chars.Length >= 3 && chars.Length <= 32)
-            .Select(chars => new string(chars));
+        return from len in Gen.Choose(3, 16)
+               from chars in Gen.ArrayOf(len, Gen.Elements(validChars))
+               select new string(chars);
     }
 
     public void Dispose()

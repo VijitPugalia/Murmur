@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Murmur.Core.Interfaces;
 using Murmur.Core.Services;
@@ -94,8 +94,8 @@ public partial class App : Application
             // Hold mode: start on press, stop on release
             hotkeyManager.HoldHotkeyPressed += async (s, args) =>
             {
-                DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] HoldHotkeyPressed event fired!\n");
-                if (!orchestrator.IsActive)
+                DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] HoldHotkeyPressed event fired! CurrentState={orchestrator.CurrentState}\n");
+                if (!orchestrator.IsActive || orchestrator.CurrentState == Core.Models.PipelineState.Error)
                 {
                     DebugLogger.Log("  Starting recording...\n");
                     var settings = settingsManager.Load();
@@ -103,13 +103,13 @@ public partial class App : Application
                 }
                 else
                 {
-                    DebugLogger.Log("  Already active, ignoring\n");
+                    DebugLogger.Log($"  Already active in state {orchestrator.CurrentState}, ignoring\n");
                 }
             };
 
             hotkeyManager.HoldHotkeyReleased += async (s, args) =>
             {
-                DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] HoldHotkeyReleased event fired!\n");
+                DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] HoldHotkeyReleased event fired! CurrentState={orchestrator.CurrentState}\n");
                 if (orchestrator.IsActive)
                 {
                     DebugLogger.Log("  Stopping recording...\n");
@@ -124,8 +124,8 @@ public partial class App : Application
             // Toggle mode: toggle recording on/off
             hotkeyManager.ToggleHotkeyPressed += async (s, args) =>
             {
-                DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] ToggleHotkeyPressed event fired!\n");
-                if (orchestrator.IsActive)
+                DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] ToggleHotkeyPressed event fired! CurrentState={orchestrator.CurrentState}\n");
+                if (orchestrator.IsActive && orchestrator.CurrentState != Core.Models.PipelineState.Error)
                 {
                     DebugLogger.Log("  Stopping recording...\n");
                     await orchestrator.StopAsync();

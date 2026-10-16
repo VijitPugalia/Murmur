@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -16,8 +16,24 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
     private const int WH_KEYBOARD_LL = 13;
+    private const int WM_KEYDOWN = 0x0100;
     private const int WM_KEYUP = 0x0101;
+    private const int WM_SYSKEYDOWN = 0x0104;
     private const int WM_SYSKEYUP = 0x0105;
+
+    private const int VK_LCONTROL = 0xA2;
+    private const int VK_RCONTROL = 0xA3;
+    private const int VK_CONTROL = 0x11;
+    private const int VK_LMENU = 0xA4;
+    private const int VK_RMENU = 0xA5;
+    private const int VK_MENU = 0x12;
+    private const int VK_LSHIFT = 0xA0;
+    private const int VK_RSHIFT = 0xA1;
+    private const int VK_SHIFT = 0x10;
+    private const int VK_LWIN = 0x5B;
+    private const int VK_RWIN = 0x5C;
+    private const byte VK_DUMMY = 0xE8; // Used to suppress Windows Start menu on Win key release
+    private const uint KEYEVENTF_KEYUP = 0x0002;
 
     private const int HOLD_HOTKEY_ID = 9001;
     private const int TOGGLE_HOTKEY_ID = 9002;
@@ -74,42 +90,57 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
             // Register hotkeys to the thread (IntPtr.Zero)
             // This allows receiving WM_HOTKEY via the message loop
 
-            // Register Hold hotkey
-            var holdMods = GetModifiers(config.HoldHotkey.Modifiers);
-            var holdKey = (uint)config.HoldHotkey.Key;
-            Log($"Registering Hold: {config.HoldHotkey} (mods=0x{holdMods:X}, key=0x{holdKey:X})");
-            
-            if (!RegisterHotKey(IntPtr.Zero, HOLD_HOTKEY_ID, holdMods, holdKey))
+            // Only attempt Win32 RegisterHotKey if a non-modifier key is specified.
+            // Pure modifier combinations like Ctrl+Win have Key == VirtualKey.None (vk=0),
+            // which RegisterHotKey rejects with ERROR_INVALID_PARAMETER (87). Those are handled
+            // reliably via our low-level keyboard hook.
+            if (config.HoldHotkey.Key != VirtualKey.None)
             {
-                var err = Marshal.GetLastWin32Error();
-                Log($"Failed Hold hotkey registration: error {err}");
-                return false;
+                var holdMods = GetModifiers(config.HoldHotkey.Modifiers);
+                var holdKey = (uint)config.HoldHotkey.Key;
+                Log($"Registering Hold with RegisterHotKey: {config.HoldHotkey} (mods=0x{holdMods:X}, key=0x{holdKey:X})");
+                if (!RegisterHotKey(IntPtr.Zero, HOLD_HOTKEY_ID, holdMods, holdKey))
+                {
+                    var err = Marshal.GetLastWin32Error();
+                    Log($"RegisterHotKey for Hold returned {err}; falling back to low-level keyboard hook.");
+                }
+                else
+                {
+                    Log("Hold hotkey registered via RegisterHotKey");
+                }
             }
-            Log("Hold hotkey registered successfully");
+            else
+            {
+                Log($"Hold hotkey {config.HoldHotkey} is modifier-only; handled via low-level hook.");
+            }
 
             // Register Toggle hotkey
-            var toggleMods = GetModifiers(config.ToggleHotkey.Modifiers);
-            var toggleKey = (uint)config.ToggleHotkey.Key;
-            Log($"Registering Toggle: {config.ToggleHotkey} (mods=0x{toggleMods:X}, key=0x{toggleKey:X})");
-            
-            if (!RegisterHotKey(IntPtr.Zero, TOGGLE_HOTKEY_ID, toggleMods, toggleKey))
+            if (config.ToggleHotkey.Key != VirtualKey.None)
             {
-                var err = Marshal.GetLastWin32Error();
-                Log($"Failed Toggle hotkey registration: error {err}");
-                UnregisterHotKey(IntPtr.Zero, HOLD_HOTKEY_ID);
-                return false;
+                var toggleMods = GetModifiers(config.ToggleHotkey.Modifiers);
+                var toggleKey = (uint)config.ToggleHotkey.Key;
+                Log($"Registering Toggle: {config.ToggleHotkey} (mods=0x{toggleMods:X}, key=0x{toggleKey:X})");
+                
+                if (!RegisterHotKey(IntPtr.Zero, TOGGLE_HOTKEY_ID, toggleMods, toggleKey))
+                {
+                    var err = Marshal.GetLastWin32Error();
+                    Log($"RegisterHotKey for Toggle returned {err}; falling back to low-level keyboard hook.");
+                }
+                else
+                {
+                    Log("Toggle hotkey registered successfully via RegisterHotKey");
+                }
             }
-            Log("Toggle hotkey registered successfully");
 
             // Register Paste Again hotkey if configured
-            if (config.PasteAgainHotkey != null)
+            if (config.PasteAgainHotkey != null && config.PasteAgainHotkey.Key != VirtualKey.None)
             {
                 var pasteAgainMods = GetModifiers(config.PasteAgainHotkey.Modifiers);
                 var pasteAgainKey = (uint)config.PasteAgainHotkey.Key;
                 RegisterHotKey(IntPtr.Zero, PASTE_AGAIN_HOTKEY_ID, pasteAgainMods, pasteAgainKey);
             }
 
-            // Install keyboard hook for detecting key release (for Hold mode)
+            // Install keyboard hook for detecting key release and modifier-only hotkeys
             InstallKeyboardHook();
 
             IsActive = true;
@@ -231,21 +262,131 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
         _keyboardProc = null;
     }
 
+    private static bool IsCtrlDown() =>
+        (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
+
+    private static bool IsWinDown() =>
+        (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
+
+    private static bool IsAltDown() =>
+        (GetAsyncKeyState(VK_MENU) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_LMENU) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
+
+    private static bool IsShiftDown() =>
+        (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0 ||
+        (GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
+
+    private static void SuppressStartMenu()
+    {
+        keybd_event(VK_DUMMY, 0, 0, UIntPtr.Zero);
+        keybd_event(VK_DUMMY, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+    }
+
+    private static bool MatchesBinding(HotkeyBinding? binding, uint vkCode, bool checkMainKey)
+    {
+        if (binding == null || binding.IsDisabled) return false;
+
+        bool ctrlRequired = (binding.Modifiers & ModifierKeys.Ctrl) != 0;
+        bool winRequired = (binding.Modifiers & ModifierKeys.Win) != 0;
+        bool altRequired = (binding.Modifiers & ModifierKeys.Alt) != 0;
+        bool shiftRequired = (binding.Modifiers & ModifierKeys.Shift) != 0;
+
+        if (ctrlRequired != IsCtrlDown()) return false;
+        if (winRequired != IsWinDown()) return false;
+        if (altRequired != IsAltDown()) return false;
+        if (shiftRequired != IsShiftDown()) return false;
+
+        if (binding.Key == VirtualKey.None)
+        {
+            return true;
+        }
+
+        if (checkMainKey)
+        {
+            return (VirtualKey)vkCode == binding.Key;
+        }
+
+        return true;
+    }
+
     private IntPtr LowLevelKeyboardProcCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && _isHoldActive && _configuration?.HoldHotkey != null)
+        if (nCode >= 0 && _configuration != null)
         {
             var kbStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            var vkCode = (VirtualKey)kbStruct.vkCode;
+            var vkCode = kbStruct.vkCode;
             var msgType = wParam.ToInt32();
+            bool isKeyDown = msgType == WM_KEYDOWN || msgType == WM_SYSKEYDOWN;
+            bool isKeyUp = msgType == WM_KEYUP || msgType == WM_SYSKEYUP;
 
-            // Check if the hotkey's main key was released
-            if ((msgType == WM_KEYUP || msgType == WM_SYSKEYUP) && vkCode == _configuration.HoldHotkey.Key)
+            var holdHotkey = _configuration.HoldHotkey;
+
+            // Handle HOLD hotkey key-down
+            if (isKeyDown && !_isHoldActive && holdHotkey != null && !holdHotkey.IsDisabled)
             {
-                Log($"Hold key released: {vkCode}");
-                _isHoldActive = false;
-                var binding = _configuration.HoldHotkey;
-                Application.Current?.Dispatcher.BeginInvoke(() => OnHoldHotkeyReleased(binding));
+                bool matches = false;
+                if (holdHotkey.Key == VirtualKey.None)
+                {
+                    matches = MatchesBinding(holdHotkey, vkCode, checkMainKey: false);
+                }
+                else
+                {
+                    matches = MatchesBinding(holdHotkey, vkCode, checkMainKey: true);
+                }
+
+                if (matches)
+                {
+                    Log($"Hold key combination pressed: {holdHotkey}");
+                    _isHoldActive = true;
+                    if ((holdHotkey.Modifiers & ModifierKeys.Win) != 0)
+                    {
+                        SuppressStartMenu();
+                    }
+                    var binding = holdHotkey;
+                    Application.Current?.Dispatcher.BeginInvoke(() => OnHoldHotkeyPressed(binding));
+                }
+            }
+            // Handle HOLD hotkey key-up
+            else if (isKeyUp && _isHoldActive && holdHotkey != null)
+            {
+                bool shouldRelease = false;
+
+                if (holdHotkey.Key == VirtualKey.None)
+                {
+                    bool ctrlReleased = (holdHotkey.Modifiers & ModifierKeys.Ctrl) != 0 && (vkCode is (uint)VK_CONTROL or (uint)VK_LCONTROL or (uint)VK_RCONTROL);
+                    bool winReleased = (holdHotkey.Modifiers & ModifierKeys.Win) != 0 && (vkCode is (uint)VK_LWIN or (uint)VK_RWIN);
+                    bool altReleased = (holdHotkey.Modifiers & ModifierKeys.Alt) != 0 && (vkCode is (uint)VK_MENU or (uint)VK_LMENU or (uint)VK_RMENU);
+                    bool shiftReleased = (holdHotkey.Modifiers & ModifierKeys.Shift) != 0 && (vkCode is (uint)VK_SHIFT or (uint)VK_LSHIFT or (uint)VK_RSHIFT);
+
+                    shouldRelease = ctrlReleased || winReleased || altReleased || shiftReleased;
+                }
+                else
+                {
+                    bool mainKeyReleased = vkCode == (uint)holdHotkey.Key;
+                    bool ctrlReleased = (holdHotkey.Modifiers & ModifierKeys.Ctrl) != 0 && (vkCode is (uint)VK_CONTROL or (uint)VK_LCONTROL or (uint)VK_RCONTROL);
+                    bool winReleased = (holdHotkey.Modifiers & ModifierKeys.Win) != 0 && (vkCode is (uint)VK_LWIN or (uint)VK_RWIN);
+                    bool altReleased = (holdHotkey.Modifiers & ModifierKeys.Alt) != 0 && (vkCode is (uint)VK_MENU or (uint)VK_LMENU or (uint)VK_RMENU);
+                    bool shiftReleased = (holdHotkey.Modifiers & ModifierKeys.Shift) != 0 && (vkCode is (uint)VK_SHIFT or (uint)VK_LSHIFT or (uint)VK_RSHIFT);
+
+                    shouldRelease = mainKeyReleased || ctrlReleased || winReleased || altReleased || shiftReleased;
+                }
+
+                if (shouldRelease)
+                {
+                    Log($"Hold key released (vkCode={vkCode})");
+                    _isHoldActive = false;
+                    if ((holdHotkey.Modifiers & ModifierKeys.Win) != 0)
+                    {
+                        SuppressStartMenu();
+                    }
+                    var binding = holdHotkey;
+                    Application.Current?.Dispatcher.BeginInvoke(() => OnHoldHotkeyReleased(binding));
+                }
             }
         }
         return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
@@ -336,6 +477,12 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
     #endregion
 }

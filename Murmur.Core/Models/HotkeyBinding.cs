@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Murmur.Core.Models;
 
@@ -26,11 +26,10 @@ public class HotkeyBinding : IEquatable<HotkeyBinding>
     public VirtualKey Key { get; set; }
 
     /// <summary>
-    /// Gets whether this hotkey is disabled (no key assigned).
-    /// Matches macOS shortcut.isDisabled property.
+    /// Gets whether this hotkey is disabled (no key and no modifiers assigned).
     /// </summary>
     [JsonIgnore]
-    public bool IsDisabled => Key == VirtualKey.None;
+    public bool IsDisabled => Modifiers == ModifierKeys.None && Key == VirtualKey.None;
 
     /// <summary>
     /// Creates a deep copy of the hotkey binding.
@@ -70,8 +69,11 @@ public class HotkeyBinding : IEquatable<HotkeyBinding>
         if (Modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
         if (Modifiers.HasFlag(ModifierKeys.Win)) parts.Add("Win");
 
-        parts.Add(Key.ToString());
+        if (Key != VirtualKey.None)
+        {
+            parts.Add(Key == VirtualKey.Space ? "Space" : Key.ToString());
+        }
 
-        return string.Join("+", parts);
+        return parts.Count > 0 ? string.Join("+", parts) : "None";
     }
 }

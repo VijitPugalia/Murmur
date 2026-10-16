@@ -381,22 +381,102 @@
                                 <TextBlock Text="⌨️" Style="{StaticResource CardIcon}"/>
                                 <TextBlock Text="Dictation Shortcuts" Style="{StaticResource CardTitle}"/>
                             </StackPanel>
-                            <Grid>
+                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,10">
+                                Global shortcuts to activate voice dictation in any application.
+                            </TextBlock>
+
+                            <!-- Current Shortcuts Grid -->
+                            <Grid Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Hold Mode" Style="{StaticResource FieldLabel}" Margin="0"/>
-                                    <Button Content="{Binding HoldHotkeyDisplay}" Command="{Binding RecordHoldHotkeyCommand}" Style="{StaticResource HotkeyButton}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock Text="Toggle Mode" Style="{StaticResource FieldLabel}" Margin="0"/>
-                                    <Button Content="{Binding ToggleHotkeyDisplay}" Command="{Binding RecordToggleHotkeyCommand}" Style="{StaticResource HotkeyButton}"/>
-                                </StackPanel>
+                                
+                                <!-- Hold Mode (Hold-to-Talk) -->
+                                <Border Grid.Column="0" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Hold-to-Talk (Recommended)" FontWeight="SemiBold" FontSize="12" Foreground="#1A1A1A"/>
+                                        <TextBlock Text="Hold keys while speaking; release to paste" FontSize="11" Foreground="#666666" Margin="0,2,0,8"/>
+                                        <Button Content="{Binding HoldHotkeyDisplay}" Command="{Binding RecordHoldHotkeyCommand}" Style="{StaticResource HotkeyButton}" FontWeight="Bold" FontSize="13" Foreground="#0078D4"/>
+                                        <TextBlock Text="Click button to record keyboard shortcut" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Toggle Mode (Click to start/stop) -->
+                                <Border Grid.Column="1" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Toggle Mode" FontWeight="SemiBold" FontSize="12" Foreground="#1A1A1A"/>
+                                        <TextBlock Text="Press once to start, press again to stop" FontSize="11" Foreground="#666666" Margin="0,2,0,8"/>
+                                        <Button Content="{Binding ToggleHotkeyDisplay}" Command="{Binding RecordToggleHotkeyCommand}" Style="{StaticResource HotkeyButton}" FontWeight="Bold" FontSize="13" Foreground="#0078D4"/>
+                                        <TextBlock Text="Click button to record keyboard shortcut" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
+
+                            <!-- Quick Presets -->
+                            <TextBlock Text="Quick Presets" Style="{StaticResource FieldLabel}" Margin="0,4,0,4"/>
+                            <WrapPanel Margin="0,0,0,12">
+                                <Button Content="⚡ Ctrl + Windows (Default)" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Win" Margin="0,0,6,6" Padding="10,5" Background="#EBF3FC" BorderBrush="#0078D4" BorderThickness="1" Foreground="#0078D4" FontWeight="SemiBold" Cursor="Hand"/>
+                                <Button Content="Ctrl + Shift + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Shift+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
+                                <Button Content="Alt + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Alt+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
+                                <Button Content="Ctrl + Alt + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Alt+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
+                            </WrapPanel>
+
+                            <!-- Custom Hotkey Builder -->
+                            <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="Custom Hotkey Builder" FontWeight="SemiBold" FontSize="12" Foreground="#111827" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Configure custom combinations of modifiers and keys:" Style="{StaticResource FieldDescription}" Margin="0,0,0,8"/>
+                                    
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="Target:" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <RadioButton Content="Hold-to-Talk" GroupName="CustomTarget" IsChecked="{Binding CustomTargetIsHold}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                                        <RadioButton Content="Toggle Mode" GroupName="CustomTarget" IsChecked="{Binding CustomTargetIsToggle}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <!-- Modifiers Checkboxes -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="Modifiers:" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <CheckBox Content="Ctrl" IsChecked="{Binding CustomCtrl}" Margin="0,0,14,0"/>
+                                        <CheckBox Content="Windows" IsChecked="{Binding CustomWin}" Margin="0,0,14,0"/>
+                                        <CheckBox Content="Alt" IsChecked="{Binding CustomAlt}" Margin="0,0,14,0"/>
+                                        <CheckBox Content="Shift" IsChecked="{Binding CustomShift}"/>
+                                    </StackPanel>
+
+                                    <!-- Key Selection Dropdown -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Key:" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedCustomKey}" DisplayMemberPath="Display" Padding="8,5" MaxDropDownHeight="240"/>
+                                    </Grid>
+
+                                    <!-- Live Preview & Apply Button -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Preview: " FontWeight="SemiBold" FontSize="12" Foreground="#555555" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding CustomHotkeyPreview}" FontWeight="Bold" FontSize="13" FontFamily="Consolas" Foreground="#0078D4" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="Apply Custom Hotkey" Command="{Binding ApplyCustomHotkeyCommand}" Background="#0078D4" Foreground="White" Padding="14,6" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,8,0">
+                                            <Button.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="5"/>
+                                                </Style>
+                                            </Button.Resources>
+                                        </Button>
+                                        <Button Grid.Column="2" Content="Reset Default" Command="{Binding ResetHotkeysCommand}" Style="{StaticResource SmallButton}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
                             
-                            <Separator Margin="0,16,0,12"/>
+                            <Separator Margin="0,4,0,12"/>
                             
                             <StackPanel>
                                 <Grid>

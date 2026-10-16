@@ -31,11 +31,11 @@ flowchart LR
 
 | Shortcut | Mode | Behavior |
 | :--- | :--- | :--- |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> | **Hold-to-Talk** | Speak while holding; auto-transcribes and pastes on release |
+| <kbd>Ctrl</kbd> + <kbd>Win</kbd> | **Hold-to-Talk (Default)** | Speak while holding; auto-transcribes and pastes on release |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd> | **Toggle Mode** | Press once to start recording, press again to finish |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> | **Paste Again** | Re-pastes the last formatted transcript instantly |
 
-> *All hotkeys can be customized directly from the Settings window.*
+> *All hotkeys can be customized directly in the **Settings** window under **Dictation Shortcuts** — choose from popular presets or configure your own custom modifier and key combinations.*
 
 ---
 
@@ -58,7 +58,7 @@ flowchart LR
 3. **Add your API Key**:
    - Right-click the Murmur tray icon ➔ **Settings**.
    - Paste your free [Groq API Key](https://console.groq.com/keys) (or OpenAI key).
-4. **Speak**: Hold <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> in any text field and talk naturally.
+4. **Speak**: Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> in any text field and talk naturally. Release when finished to paste your cleaned dictation.
 
 ---
 

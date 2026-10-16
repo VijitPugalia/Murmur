@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Murmur.Core.Models;
 
@@ -38,13 +38,13 @@ public class AppSettings : IEquatable<AppSettings>
     public string PostProcessingFallbackModel { get; set; } = "qwen/qwen3.6-27b";
 
     /// <summary>
-    /// Hotkey binding for hold-to-talk mode.
+    /// Hotkey binding for hold-to-talk mode. Default: Ctrl + Windows.
     /// </summary>
     [JsonPropertyName("holdHotkey")]
     public HotkeyBinding HoldHotkey { get; set; } = new() 
     { 
-        Modifiers = ModifierKeys.Ctrl | ModifierKeys.Shift, 
-        Key = VirtualKey.Space 
+        Modifiers = ModifierKeys.Ctrl | ModifierKeys.Win, 
+        Key = VirtualKey.None 
     };
 
     /// <summary>

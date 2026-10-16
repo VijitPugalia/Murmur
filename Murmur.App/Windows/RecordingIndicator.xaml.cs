@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -74,6 +74,15 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
         public uint dwFlags;
     }
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_SHOWWINDOW = 0x0040;
+
     #endregion
 
     /// <summary>
@@ -112,6 +121,15 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
 
     #region IRecordingIndicator Implementation
 
+    private void EnsureTopmost()
+    {
+        var helper = new WindowInteropHelper(this);
+        if (helper.Handle != IntPtr.Zero)
+        {
+            SetWindowPos(helper.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+    }
+
     /// <inheritdoc/>
     public void ShowInitializing(RecordingMode mode)
     {
@@ -120,7 +138,9 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
             _viewModel.ShowInitializing(mode);
             UpdateWindowWidth(mode);
             PositionWindow();
+            Topmost = true;
             Show();
+            EnsureTopmost();
             StartInitializingAnimation();
         });
     }
@@ -133,11 +153,13 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
             StopAnimations();
             _viewModel.ShowRecording(mode);
             UpdateWindowWidth(mode);
+            PositionWindow();
+            Topmost = true;
             if (!IsVisible)
             {
-                PositionWindow();
                 Show();
             }
+            EnsureTopmost();
         });
     }
 
@@ -148,12 +170,14 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
         {
             StopAnimations();
             _viewModel.ShowProcessing();
+            Topmost = true;
             // Keep same width during processing (don't shrink)
             if (!IsVisible)
             {
                 PositionWindow();
                 Show();
             }
+            EnsureTopmost();
             StartProcessingAnimation();
         });
     }
@@ -165,11 +189,13 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
         {
             StopAnimations();
             _viewModel.ShowError(message);
+            Topmost = true;
             if (!IsVisible)
             {
                 PositionWindow();
                 Show();
             }
+            EnsureTopmost();
 
             // Start the error dismiss timer
             _errorDismissTimer.Stop();
