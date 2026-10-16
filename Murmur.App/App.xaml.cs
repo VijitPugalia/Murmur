@@ -27,6 +27,7 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        DebugLogger.Log($"\n[App.OnStartup Starting with args: {string.Join(" ", e.Args)}]\n");
 
         // Global crash protection & logging
         AppDomain.CurrentDomain.UnhandledException += (s, args) =>
@@ -55,9 +56,10 @@ public partial class App : Application
             ConfigureServices(services);
             _serviceProvider = services.BuildServiceProvider();
 
-            // Get lifecycle manager and initialize
+            DebugLogger.Log("[OnStartup] Resolving lifecycle and initializing...\n");
             _lifecycle = _serviceProvider.GetRequiredService<IApplicationLifecycle>();
             await _lifecycle.InitializeAsync();
+            DebugLogger.Log("[OnStartup] Lifecycle initialized!\n");
 
             // Create AppState to track pipeline state
             var orchestrator = _serviceProvider.GetRequiredService<IPipelineOrchestrator>();
@@ -65,6 +67,7 @@ public partial class App : Application
             _appState = new AppState(orchestrator, settingsManager);
             
             // Create and wire up the recording indicator
+            DebugLogger.Log("[OnStartup] Creating RecordingIndicator...\n");
             _recordingIndicator = new RecordingIndicator();
             _appState.ShowRecordingIndicator += OnShowRecordingIndicator;
             _appState.HideRecordingIndicator += OnHideRecordingIndicator;
@@ -157,13 +160,14 @@ public partial class App : Application
             var credentialStore = _serviceProvider.GetRequiredService<ICredentialStore>();
             var apiKey = credentialStore.GetApiKey("api_key");
             
-            if (string.IsNullOrWhiteSpace(apiKey))
+            if (string.IsNullOrWhiteSpace(apiKey) || e.Args.Any(a => a.Equals("--settings", StringComparison.OrdinalIgnoreCase) || a.Equals("-s", StringComparison.OrdinalIgnoreCase)))
             {
                 ShowSettingsWindow();
             }
         }
         catch (Exception ex)
         {
+            DebugLogger.Log($"\n[FATAL OnStartup Exception] {ex.Message}\n{ex.StackTrace}\n");
             MessageBox.Show(
                 $"Failed to start Murmur: {ex.Message}",
                 "Murmur Error",
@@ -251,30 +255,48 @@ public partial class App : Application
     /// </summary>
     public void ShowSettingsWindow()
     {
-        // Check if settings window is already open
-        foreach (Window window in Windows)
+        DebugLogger.Log("\n[ShowSettingsWindow] Called\n");
+        try
         {
-            if (window is SettingsWindow existingWindow)
+            // Check if settings window is already open
+            foreach (Window window in Windows)
             {
-                if (existingWindow.WindowState == WindowState.Minimized)
+                if (window is SettingsWindow existingWindow)
                 {
-                    existingWindow.WindowState = WindowState.Normal;
+                    DebugLogger.Log("[ShowSettingsWindow] Found existing window, activating...\n");
+                    if (existingWindow.WindowState == WindowState.Minimized)
+                    {
+                        existingWindow.WindowState = WindowState.Normal;
+                    }
+                    existingWindow.Activate();
+                    existingWindow.Focus();
+                    return;
                 }
-                existingWindow.Activate();
-                existingWindow.Focus();
-                return;
+            }
+
+            DebugLogger.Log("[ShowSettingsWindow] Resolving dependencies...\n");
+            var serviceProvider = _serviceProvider!;
+            var settingsManager = serviceProvider.GetRequiredService<ISettingsManager>();
+            var credentialStore = serviceProvider.GetRequiredService<ICredentialStore>();
+            var audioRecorder = serviceProvider.GetRequiredService<IAudioRecorder>();
+
+            DebugLogger.Log("[ShowSettingsWindow] Creating SettingsWindow instance...\n");
+            var settingsWindow = new SettingsWindow(settingsManager, credentialStore, audioRecorder);
+            settingsWindow.Closed += OnSettingsWindowClosed;
+            DebugLogger.Log("[ShowSettingsWindow] Calling settingsWindow.Show()...\n");
+            settingsWindow.Show();
+            settingsWindow.Activate();
+            settingsWindow.Focus();
+            DebugLogger.Log("[ShowSettingsWindow] Settings window shown and activated successfully!\n");
+        }
+        catch (Exception ex)
+        {
+            DebugLogger.Log($"\n[ShowSettingsWindow Exception] {ex.Message}\n{ex.StackTrace}\n");
+            if (ex.InnerException != null)
+            {
+                DebugLogger.Log($"[ShowSettingsWindow InnerException] {ex.InnerException.Message}\n{ex.InnerException.StackTrace}\n");
             }
         }
-
-        // Create and show new settings window using proper constructor with dependencies
-        var serviceProvider = _serviceProvider!;
-        var settingsManager = serviceProvider.GetRequiredService<ISettingsManager>();
-        var credentialStore = serviceProvider.GetRequiredService<ICredentialStore>();
-        var audioRecorder = serviceProvider.GetRequiredService<IAudioRecorder>();
-        
-        var settingsWindow = new SettingsWindow(settingsManager, credentialStore, audioRecorder);
-        settingsWindow.Closed += OnSettingsWindowClosed;
-        settingsWindow.Show();
     }
     
     private void OnSettingsWindowClosed(object? sender, EventArgs e)
@@ -325,6 +347,7 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
+        DebugLogger.Log($"\n[App.OnExit] Application exiting with code {e.ApplicationExitCode}\nStack:\n{Environment.StackTrace}\n");
         // Clean up recording indicator
         if (_appState != null)
         {

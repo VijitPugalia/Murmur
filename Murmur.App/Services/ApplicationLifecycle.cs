@@ -82,21 +82,21 @@ public class ApplicationLifecycle : IApplicationLifecycle
 
         try
         {
-            // Load settings
+            DebugLogger.Log("[InitializeAsync] 1. Loading settings...\n");
             var settings = _settingsManager.Load();
 
-            // Initialize system tray
+            DebugLogger.Log("[InitializeAsync] 2. Initializing system tray...\n");
             _systemTrayManager.Initialize();
             _systemTrayManager.ExitRequested += OnExitRequested;
             _systemTrayManager.SettingsRequested += OnSettingsRequested;
 
-            // Register hotkeys
+            DebugLogger.Log("[InitializeAsync] 3. Registering hotkeys...\n");
             await RegisterHotkeysAsync(settings);
 
-            // Update startup registration based on settings
+            DebugLogger.Log("[InitializeAsync] 4. Updating startup registration...\n");
             _startupManager.SetStartupEnabled(settings.StartWithWindows);
 
-            // Subscribe to pipeline events for tray icon updates
+            DebugLogger.Log("[InitializeAsync] 5. Subscribing to pipeline events...\n");
             _pipelineOrchestrator.StateChanged += OnPipelineStateChanged;
             _pipelineOrchestrator.Error += OnPipelineError;
 
@@ -104,10 +104,11 @@ public class ApplicationLifecycle : IApplicationLifecycle
             {
                 _isInitialized = true;
             }
+            DebugLogger.Log("[InitializeAsync] Done successfully!\n");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // If initialization fails, clean up what we can
+            DebugLogger.Log($"\n[InitializeAsync Exception] {ex.Message}\n{ex.StackTrace}\n");
             await ShutdownAsync();
             throw;
         }
@@ -125,6 +126,7 @@ public class ApplicationLifecycle : IApplicationLifecycle
             _isShuttingDown = true;
         }
 
+        DebugLogger.Log($"\n[ShutdownAsync] Initiated from:\n{Environment.StackTrace}\n");
         try
         {
             // Notify that shutdown is starting
