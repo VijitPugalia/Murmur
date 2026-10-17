@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Murmur.Core.Interfaces;
 using Murmur.Core.Services;
 using Murmur.Core.Models;
@@ -12,8 +12,33 @@ namespace Murmur.Tests.Integration;
 /// Tests that all services resolve correctly and interact as expected.
 /// Requirements covered: 1.1, 3.3, 7.2
 /// </summary>
-public class ComponentWiringTests
+public class ComponentWiringTests : IDisposable
 {
+    private readonly string _tempDir;
+    private readonly string _tempSettingsPath;
+
+    public ComponentWiringTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), "MurmurWiringTests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempDir);
+        _tempSettingsPath = Path.Combine(_tempDir, "settings.json");
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_tempDir))
+            {
+                Directory.Delete(_tempDir, recursive: true);
+            }
+        }
+        catch
+        {
+            // Best effort cleanup
+        }
+    }
+
     #region DI Container Tests
 
     [Fact]
@@ -207,23 +232,23 @@ public class ComponentWiringTests
 
     #region Helper Methods
 
-    private static ServiceCollection CreateServiceCollection()
+    private ServiceCollection CreateServiceCollection()
     {
         var services = new ServiceCollection();
         
-        services.AddSingleton<ISettingsManager, SettingsManager>();
+        services.AddSingleton<ISettingsManager>(new SettingsManager(_tempSettingsPath, enforcePermissions: false));
         services.AddSingleton<ICredentialStore, CredentialStore>();
         services.AddSingleton<IStartupManager, StartupManager>();
         
         return services;
     }
 
-    private static ServiceCollection CreateServiceCollectionWithMocks()
+    private ServiceCollection CreateServiceCollectionWithMocks()
     {
         var services = new ServiceCollection();
 
-        // Real services for testing
-        services.AddSingleton<ISettingsManager, SettingsManager>();
+        // Real services for testing with isolated settings path
+        services.AddSingleton<ISettingsManager>(new SettingsManager(_tempSettingsPath, enforcePermissions: false));
         services.AddSingleton<ICredentialStore, CredentialStore>();
         services.AddSingleton<IStartupManager, StartupManager>();
 

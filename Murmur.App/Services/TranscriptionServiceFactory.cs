@@ -40,6 +40,10 @@ public class TranscriptionServiceFactory : ITranscriptionService
         }
 
         var baseUrl = settings.TranscriptionApiUrl ?? settings.ApiBaseUrl ?? "https://api.groq.com/openai/v1";
+        if (string.IsNullOrWhiteSpace(baseUrl) || baseUrl.Contains("example.com", StringComparison.OrdinalIgnoreCase))
+        {
+            baseUrl = "https://api.groq.com/openai/v1";
+        }
         var model = settings.TranscriptionModel ?? "whisper-large-v3";
 
         System.IO.File.AppendAllText(logPath, $"  Base URL: {baseUrl}\n");
