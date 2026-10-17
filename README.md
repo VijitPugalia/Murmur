@@ -42,6 +42,10 @@ flowchart LR
 ## ✨ Features
 
 - **⚡ Sub-Second Speed**: Transcriptions return in ~250–400ms using Groq's high-speed LPU inference engine.
+- **📜 Searchable Dictation History**: Dedicated floating history panel with instant search, copy, delete, and 1-click **Paste Again** into target apps.
+- **🔊 Tactile Audio Feedback**: Pure in-memory synthesized audio cues for recording start, completion confirmation, and cancellation.
+- **🎯 Per-App Dictation Personalities**: Tailored prompts for VS Code (code backticks, camelCase), Slack (casual conversational), and Outlook/Email (professional).
+- **🗣️ Voice Snippets**: Automatic expansion of spoken trigger phrases into text templates (e.g. saying *"shrug emoji"* types `¯\_(ツ)_/¯`).
 - **🧠 Context Awareness**: Inspects foreground app window titles and selected text to tailor vocabulary and capitalization.
 - **✍️ In-Place Edit Mode**: Select any text in any app, trigger dictation with an edit instruction (*"make this polite"*, *"fix grammar"*), and Murmur replaces the selection with polished output.
 - **🏝️ Dynamic Floating Waveform**: Discreet, non-intrusive floating island HUD with real-time audio visualization.
@@ -51,14 +55,22 @@ flowchart LR
 
 ---
 
-## 🚀 Quickstart
+## 🚀 Download & Installation
 
-1. **Download** the latest `Murmur.exe` from [Releases](https://github.com/VijitPugalia/Murmur/releases).
-2. **Launch** the app — it runs cleanly in your Windows System Tray.
+Murmur is packaged as a **self-contained standalone Windows executable** — no .NET runtime, SDK, or installers required.
+
+| File | Size | Description |
+| :--- | :--- | :--- |
+| **`Murmur.exe`** | **~91 MB** | **Standalone Executable** — Just download and double-click to run! |
+| **`Murmur-Windows-1.0.0-win-x64.zip`** | **~85 MB** | Compressed release archive |
+
+### Installation Steps:
+1. **Download** the latest `Murmur.exe` directly from [GitHub Releases](https://github.com/VijitPugalia/Murmur/releases).
+2. **Double-click `Murmur.exe`** — it runs immediately in your Windows System Tray (no installation wizard required).
 3. **Add your API Key**:
    - Right-click the Murmur tray icon ➔ **Settings**.
    - Paste your free [Groq API Key](https://console.groq.com/keys) (or OpenAI key).
-4. **Speak**: Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> in any text field and talk naturally. Release when finished to paste your cleaned dictation.
+4. **Dictate**: Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> in any app or text box, speak naturally, and release to paste!
 
 ---
 

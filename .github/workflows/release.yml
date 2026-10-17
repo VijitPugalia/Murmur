@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build and Publish Windows x64 Executable
+        shell: pwsh
+        run: |
+          $ver = if ("${{ github.ref_name }}".StartsWith("v")) { "${{ github.ref_name }}".Substring(1) } else { "${{ inputs.version }}" }
+          if (-not $ver) { $ver = "1.0.0" }
+          Write-Host "Building version: $ver"
+          .\build-release.ps1 -Version $ver -X64Only -SkipTests
+          
+          # Copy direct exe to a known artifact path
+          Copy-Item "Murmur.App\bin\Release\publish\win-x64\Murmur.exe" "Murmur.exe" -Force
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Murmur Windows ${{ github.ref_name || inputs.version }}
+          tag_name: ${{ github.ref_name || format('v{0}', inputs.version) }}
+          files: |
+            Murmur.exe
+            releases/**/*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
