@@ -1,4 +1,4 @@
-﻿using Murmur.Core.Models;
+using Murmur.Core.Models;
 
 namespace Murmur.Core.Interfaces;
 
@@ -21,6 +21,11 @@ public interface ISystemTrayManager : IDisposable
     /// Raised when the user requests to open the settings window.
     /// </summary>
     event EventHandler? SettingsRequested;
+
+    /// <summary>
+    /// Raised when the user requests to open the full dictation history window.
+    /// </summary>
+    event EventHandler? HistoryRequested;
 
     /// <summary>
     /// Raised when the user requests to exit the application.

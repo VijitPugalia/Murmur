@@ -285,11 +285,25 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
                 else
                 {
                     DebugLogger.Log("  Starting post-processing...\n");
+                    string? effectivePrompt = string.IsNullOrWhiteSpace(settings.CustomPrompt) ? null : settings.CustomPrompt;
+                    var matchedProfile = settings.AppProfiles?.FirstOrDefault(p =>
+                        p.Enabled && !string.IsNullOrWhiteSpace(p.AppPattern) &&
+                        ((_activeContext?.ProcessName?.Contains(p.AppPattern, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                         (_activeContext?.AppName?.Contains(p.AppPattern, StringComparison.OrdinalIgnoreCase) ?? false)));
+
+                    if (matchedProfile != null && !string.IsNullOrWhiteSpace(matchedProfile.CustomPrompt))
+                    {
+                        DebugLogger.Log($"  Applied App Profile: {matchedProfile.DisplayName}\n");
+                        effectivePrompt = string.IsNullOrWhiteSpace(effectivePrompt)
+                            ? matchedProfile.CustomPrompt
+                            : $"{effectivePrompt}\n\nApp Instructions ({matchedProfile.DisplayName}):\n{matchedProfile.CustomPrompt}";
+                    }
+
                     postProcessingResult = await _postProcessingService.ProcessAsync(
                         _rawTranscript,
                         contextSummary: contextSummary,
                         customVocabulary: vocabularyLines,
-                        customSystemPrompt: string.IsNullOrWhiteSpace(settings.CustomPrompt) ? null : settings.CustomPrompt,
+                        customSystemPrompt: effectivePrompt,
                         outputLanguage: outputLang,
                         cancellationToken: ct);
                 }
@@ -308,6 +322,24 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
                 else
                 {
                     finalTranscript = postProcessingResult.CleanedTranscript!;
+                }
+            }
+
+            // Check for voice snippets expansion
+            if (settings.VoiceSnippets != null && settings.VoiceSnippets.Count > 0)
+            {
+                var trimmed = finalTranscript.Trim().TrimEnd('.', '!', '?');
+                foreach (var snippet in settings.VoiceSnippets)
+                {
+                    if (snippet.Enabled && !string.IsNullOrWhiteSpace(snippet.Trigger))
+                    {
+                        if (trimmed.Equals(snippet.Trigger.Trim(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            DebugLogger.Log($"  Expanded voice snippet: '{snippet.Trigger}' -> '{snippet.Replacement}'\n");
+                            finalTranscript = snippet.Replacement;
+                            break;
+                        }
+                    }
                 }
             }
 

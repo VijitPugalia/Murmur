@@ -78,17 +78,53 @@ public partial class App : Application
             {
                 Dispatcher.Invoke(() => _recordingIndicator?.UpdateAudioLevel(args.Level));
             };
-            
-            // Wire up error events to show in the indicator
+
+            var soundEffects = _serviceProvider.GetRequiredService<ISoundEffectService>();
+            var historyStore = _serviceProvider.GetRequiredService<IHistoryStore>();
+            var contextService = _serviceProvider.GetRequiredService<IContextService>();
+
+            // Wire up pipeline state changes for sound cues
+            orchestrator.StateChanged += (s, args) =>
+            {
+                if (args.NewState == Core.Models.PipelineState.Recording)
+                {
+                    soundEffects.PlayRecordingStart();
+                }
+            };
+
+            // Wire up error events to show in the indicator and play audio cue
             orchestrator.Error += (s, args) =>
             {
+                soundEffects.PlayError();
                 Dispatcher.Invoke(() => _recordingIndicator?.ShowError(args.Message, TimeSpan.FromSeconds(4)));
             };
             
-            // Wire up completion to dismiss the indicator
+            // Wire up completion to dismiss the indicator, play success cue, and record history
             orchestrator.Completed += (s, args) =>
             {
                 Dispatcher.Invoke(() => _recordingIndicator?.Dismiss());
+                if (!args.WasCancelled && !string.IsNullOrWhiteSpace(args.Transcript))
+                {
+                    soundEffects.PlayDictationSuccess();
+
+                    try
+                    {
+                        var context = contextService.GetActiveContext();
+                        historyStore.Add(new Core.Models.DictationHistoryItem
+                        {
+                            CleanTranscript = args.Transcript,
+                            RawTranscript = args.RawTranscript,
+                            AppName = context.AppName,
+                            WindowTitle = context.WindowTitle
+                        });
+                        var tm = _serviceProvider.GetRequiredService<ISystemTrayManager>();
+                        tm.AddToHistory(args.Transcript, args.RawTranscript);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLogger.Log($"[App] Failed to save history: {ex.Message}\n");
+                    }
+                }
             };
 
             // Wire up hotkey events to pipeline
@@ -146,6 +182,12 @@ public partial class App : Application
             trayManager.SettingsRequested += (s, args) =>
             {
                 ShowSettingsWindow();
+            };
+
+            // Wire up system tray history request to open history window
+            trayManager.HistoryRequested += (s, args) =>
+            {
+                ShowHistoryWindow();
             };
             
             // Wire up Paste Again from tray menu
@@ -223,6 +265,8 @@ public partial class App : Application
         services.AddSingleton<ICredentialStore, CredentialStore>();
         services.AddSingleton<IStartupManager, StartupManager>();
         services.AddSingleton<IContextService, WindowsContextService>();
+        services.AddSingleton<IHistoryStore, HistoryStore>();
+        services.AddSingleton<ISoundEffectService, SoundEffectService>();
 
         // Audio services
         services.AddSingleton<IAudioRecorder, AudioRecorder>();
@@ -297,6 +341,41 @@ public partial class App : Application
                 DebugLogger.Log($"[ShowSettingsWindow InnerException] {ex.InnerException.Message}\n{ex.InnerException.StackTrace}\n");
             }
         }
+    }
+
+    private Windows.HistoryWindow? _historyWindow;
+
+    /// <summary>
+    /// Shows the dictation history window.
+    /// </summary>
+    public void ShowHistoryWindow()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            try
+            {
+                if (_historyWindow != null && _historyWindow.IsLoaded)
+                {
+                    if (_historyWindow.WindowState == WindowState.Minimized)
+                        _historyWindow.WindowState = WindowState.Normal;
+                    _historyWindow.Activate();
+                    _historyWindow.Focus();
+                    return;
+                }
+
+                var historyStore = _serviceProvider!.GetRequiredService<IHistoryStore>();
+                var clipboardManager = _serviceProvider!.GetRequiredService<IClipboardManager>();
+                _historyWindow = new Windows.HistoryWindow(historyStore, clipboardManager);
+                _historyWindow.Closed += (s, e) => _historyWindow = null;
+                _historyWindow.Show();
+                _historyWindow.Activate();
+                _historyWindow.Focus();
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[ShowHistoryWindow Exception] {ex.Message}\n");
+            }
+        });
     }
     
     private void OnSettingsWindowClosed(object? sender, EventArgs e)

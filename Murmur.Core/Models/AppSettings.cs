@@ -178,6 +178,49 @@ public class AppSettings : IEquatable<AppSettings>
     public string CustomPrompt { get; set; } = "";
 
     /// <summary>
+    /// Application-specific dictation profiles.
+    /// </summary>
+    [JsonPropertyName("appProfiles")]
+    public List<AppProfile> AppProfiles { get; set; } = new()
+    {
+        new AppProfile
+        {
+            AppPattern = "code",
+            DisplayName = "VS Code",
+            CustomPrompt = "Format technical symbols as code expressions, use backticks for identifiers, preserve camelCase, PascalCase, and flags like --flag.",
+            Enabled = true
+        },
+        new AppProfile
+        {
+            AppPattern = "slack",
+            DisplayName = "Slack",
+            CustomPrompt = "Use a natural, friendly conversational tone with standard punctuation.",
+            Enabled = true
+        },
+        new AppProfile
+        {
+            AppPattern = "outlook",
+            DisplayName = "Outlook / Email",
+            CustomPrompt = "Format as professional email communication with clean paragraph structure.",
+            Enabled = true
+        }
+    };
+
+    /// <summary>
+    /// Voice snippet expansions for spoken shortcuts.
+    /// </summary>
+    [JsonPropertyName("voiceSnippets")]
+    public List<VoiceSnippet> VoiceSnippets { get; set; } = new()
+    {
+        new VoiceSnippet
+        {
+            Trigger = "shrug emoji",
+            Replacement = @"¯\_(ツ)_/¯",
+            Enabled = true
+        }
+    };
+
+    /// <summary>
     /// Creates a deep copy of the settings.
     /// </summary>
     public AppSettings Clone()
@@ -210,7 +253,9 @@ public class AppSettings : IEquatable<AppSettings>
             SoundVolume = SoundVolume,
             ShortcutStartDelay = ShortcutStartDelay,
             OutputLanguage = OutputLanguage,
-            CustomPrompt = CustomPrompt
+            CustomPrompt = CustomPrompt,
+            AppProfiles = AppProfiles.Select(p => p.Clone()).ToList(),
+            VoiceSnippets = VoiceSnippets.Select(s => s.Clone()).ToList()
         };
     }
 
@@ -245,7 +290,9 @@ public class AppSettings : IEquatable<AppSettings>
                Math.Abs(SoundVolume - other.SoundVolume) < 0.001 &&
                ShortcutStartDelay == other.ShortcutStartDelay &&
                OutputLanguage == other.OutputLanguage &&
-               CustomPrompt == other.CustomPrompt;
+               CustomPrompt == other.CustomPrompt &&
+               AppProfiles.SequenceEqual(other.AppProfiles) &&
+               VoiceSnippets.SequenceEqual(other.VoiceSnippets);
     }
 
     public override bool Equals(object? obj) => Equals(obj as AppSettings);

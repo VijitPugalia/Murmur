@@ -102,7 +102,11 @@ public partial class SettingsWindow : Window
                 if (MacrosTab != null) MacrosTab.Visibility = Visibility.Visible;
                 break;
             case "RunLog":
-                if (RunLogTab != null) RunLogTab.Visibility = Visibility.Visible;
+                if (RunLogTab != null)
+                {
+                    RunLogTab.Visibility = Visibility.Visible;
+                    LoadRunLog();
+                }
                 break;
             case "Debug":
                 if (DebugTab != null) DebugTab.Visibility = Visibility.Visible;
@@ -459,13 +463,64 @@ public partial class SettingsWindow : Window
         MessageBox.Show("Voice macro editor coming soon.\n\nThis feature will let you define voice commands that instantly paste predefined text.", "Add Macro", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     
+    private void LoadRunLog()
+    {
+        try
+        {
+            var historyStore = new HistoryStore();
+            var items = historyStore.GetAll();
+            if (items.Count == 0)
+            {
+                RunLogEmptyState.Visibility = Visibility.Visible;
+                RunLogList.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                RunLogEmptyState.Visibility = Visibility.Collapsed;
+                RunLogList.Visibility = Visibility.Visible;
+                RunLogList.ItemsSource = items;
+            }
+        }
+        catch
+        {
+            RunLogEmptyState.Visibility = Visibility.Visible;
+            RunLogList.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void RunLogCopy_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is DictationHistoryItem item)
+        {
+            try
+            {
+                Clipboard.SetText(item.CleanTranscript);
+                btn.Content = "Copied!";
+                var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+                timer.Tick += (s, args) => { btn.Content = "Copy"; timer.Stop(); };
+                timer.Start();
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
     {
         var result = MessageBox.Show("Clear all run history?", "Clear History", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (result == MessageBoxResult.Yes)
         {
-            // TODO: Clear run log history
-            MessageBox.Show("Run history cleared.", "Clear History", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var historyStore = new HistoryStore();
+                historyStore.Clear();
+                LoadRunLog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to clear history: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 

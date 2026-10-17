@@ -62,6 +62,7 @@ public class SystemTrayManager : ISystemTrayManager
     private const int MaxHistoryItems = 10;
 
     public event EventHandler? SettingsRequested;
+    public event EventHandler? HistoryRequested;
     public event EventHandler? ExitRequested;
     public event EventHandler? RecordingToggleRequested;
     public event EventHandler? PasteAgainRequested;
@@ -752,8 +753,13 @@ public class SystemTrayManager : ISystemTrayManager
             _historyMenu.Items.Add(new Separator());
         }
         
+        // "View Full History..." item - opens dedicated HistoryWindow
+        var fullHistoryItem = new MenuItem { Header = "View Full History..." };
+        fullHistoryItem.Click += (s, e) => HistoryRequested?.Invoke(this, EventArgs.Empty);
+        _historyMenu.Items.Add(fullHistoryItem);
+
         // "Open Run Log" equivalent - opens settings
-        var openLogItem = new MenuItem { Header = "Open Run Log" };
+        var openLogItem = new MenuItem { Header = "Open Run Log (Settings)" };
         openLogItem.Click += OnSettingsMenuItemClick;
         _historyMenu.Items.Add(openLogItem);
     }
