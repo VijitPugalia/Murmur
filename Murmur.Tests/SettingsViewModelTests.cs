@@ -1098,5 +1098,56 @@ public class SettingsViewModelTests
         Assert.Equal("Ctrl+Alt+Space", vm.ToggleHotkeyDisplay);
     }
 
+    [Fact]
+    public void SelectedHoldPreset_WhenChanged_UpdatesHoldHotkeyAndRaisesEvents()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        var targetPreset = vm.HoldPresets.First(p => p.Display == "Ctrl + Shift + Space");
+
+        // Act
+        vm.SelectedHoldPreset = targetPreset;
+
+        // Assert
+        Assert.Equal(ModifierKeys.Ctrl | ModifierKeys.Shift, vm.HoldHotkey.Modifiers);
+        Assert.Equal(VirtualKey.Space, vm.HoldHotkey.Key);
+        Assert.Equal("Ctrl+Shift+Space", vm.HoldHotkeyDisplay);
+        Assert.True(vm.HasHotkeyStatusMessage);
+        Assert.Contains("Ctrl+Shift+Space", vm.HotkeyStatusMessage);
+    }
+
+    [Fact]
+    public void SelectedTogglePreset_WhenChanged_UpdatesToggleHotkey()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        var targetPreset = vm.TogglePresets.First(p => p.Display == "Alt + Space");
+
+        // Act
+        vm.SelectedTogglePreset = targetPreset;
+
+        // Assert
+        Assert.Equal(ModifierKeys.Alt, vm.ToggleHotkey.Modifiers);
+        Assert.Equal(VirtualKey.Space, vm.ToggleHotkey.Key);
+        Assert.Equal("Alt+Space", vm.ToggleHotkeyDisplay);
+        Assert.True(vm.HasHotkeyStatusMessage);
+    }
+
+    [Fact]
+    public void SelectedHoldPreset_WithCustom_SetsCustomTargetIsHold()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        vm.CustomTargetIsHold = false;
+        var customPreset = vm.HoldPresets.First(p => p.IsCustom);
+
+        // Act
+        vm.SelectedHoldPreset = customPreset;
+
+        // Assert
+        Assert.True(vm.CustomTargetIsHold);
+        Assert.True(vm.SelectedHoldPreset.IsCustom);
+    }
+
     #endregion
 }

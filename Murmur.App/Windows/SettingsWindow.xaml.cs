@@ -228,16 +228,6 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        if (modifiers == CoreModifierKeys.None)
-        {
-            if (_recordingHotkeyType == HotkeyType.Hold)
-                _viewModel.HoldHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
-            else
-                _viewModel.ToggleHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
-            e.Handled = true;
-            return;
-        }
-
         var virtualKey = ConvertToVirtualKey(e.Key);
         if (virtualKey == null)
         {
@@ -245,6 +235,18 @@ public partial class SettingsWindow : Window
                 _viewModel.HoldHotkeyDisplay = "Invalid key!";
             else
                 _viewModel.ToggleHotkeyDisplay = "Invalid key!";
+            e.Handled = true;
+            return;
+        }
+
+        // Allow function keys (F1-F12) without modifiers; other keys require at least one modifier
+        bool isFunctionKey = virtualKey.Value >= VirtualKey.F1 && virtualKey.Value <= VirtualKey.F12;
+        if (modifiers == CoreModifierKeys.None && !isFunctionKey)
+        {
+            if (_recordingHotkeyType == HotkeyType.Hold)
+                _viewModel.HoldHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
+            else
+                _viewModel.ToggleHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
             e.Handled = true;
             return;
         }

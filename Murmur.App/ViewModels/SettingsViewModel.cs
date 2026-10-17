@@ -224,6 +224,112 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _toggleHotkeyDisplay, value);
     }
 
+    private string _hotkeyStatusMessage = string.Empty;
+    public string HotkeyStatusMessage
+    {
+        get => _hotkeyStatusMessage;
+        set
+        {
+            if (SetProperty(ref _hotkeyStatusMessage, value))
+            {
+                OnPropertyChanged(nameof(HasHotkeyStatusMessage));
+            }
+        }
+    }
+
+    public bool HasHotkeyStatusMessage => !string.IsNullOrEmpty(_hotkeyStatusMessage);
+
+    public IReadOnlyList<HotkeyPresetItem> HoldPresets { get; } = new List<HotkeyPresetItem>
+    {
+        new("⚡ Ctrl + Windows (Default)", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, Key = VirtualKey.None }),
+        new("Ctrl + Shift + Space", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Shift, Key = VirtualKey.Space }),
+        new("Alt + Space", new HotkeyBinding { Modifiers = CoreModifierKeys.Alt, Key = VirtualKey.Space }),
+        new("Ctrl + Space", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl, Key = VirtualKey.Space }),
+        new("Ctrl + Alt + Space", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, Key = VirtualKey.Space }),
+        new("Win + H", new HotkeyBinding { Modifiers = CoreModifierKeys.Win, Key = VirtualKey.H }),
+        new("Win + Shift + D", new HotkeyBinding { Modifiers = CoreModifierKeys.Win | CoreModifierKeys.Shift, Key = VirtualKey.D }),
+        new("F8", new HotkeyBinding { Modifiers = CoreModifierKeys.None, Key = VirtualKey.F8 }),
+        new("F9", new HotkeyBinding { Modifiers = CoreModifierKeys.None, Key = VirtualKey.F9 }),
+        new("Right Ctrl", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl, Key = VirtualKey.None }),
+        new("Right Alt", new HotkeyBinding { Modifiers = CoreModifierKeys.Alt, Key = VirtualKey.None }),
+        new("Custom Shortcut...", null, IsCustom: true)
+    };
+
+    public IReadOnlyList<HotkeyPresetItem> TogglePresets { get; } = new List<HotkeyPresetItem>
+    {
+        new("Ctrl + Alt + Space (Default)", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, Key = VirtualKey.Space }),
+        new("Ctrl + Shift + Space", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Shift, Key = VirtualKey.Space }),
+        new("Alt + Space", new HotkeyBinding { Modifiers = CoreModifierKeys.Alt, Key = VirtualKey.Space }),
+        new("Ctrl + Win", new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, Key = VirtualKey.None }),
+        new("Win + H", new HotkeyBinding { Modifiers = CoreModifierKeys.Win, Key = VirtualKey.H }),
+        new("F9", new HotkeyBinding { Modifiers = CoreModifierKeys.None, Key = VirtualKey.F9 }),
+        new("F8", new HotkeyBinding { Modifiers = CoreModifierKeys.None, Key = VirtualKey.F8 }),
+        new("Disabled", HotkeyBinding.Disabled),
+        new("Custom Shortcut...", null, IsCustom: true)
+    };
+
+    private HotkeyPresetItem? _selectedHoldPreset;
+    public HotkeyPresetItem? SelectedHoldPreset
+    {
+        get
+        {
+            if (_selectedHoldPreset != null)
+            {
+                if (_selectedHoldPreset.IsCustom) return _selectedHoldPreset;
+                if (_selectedHoldPreset.Binding != null && _selectedHoldPreset.Binding.Equals(HoldHotkey)) return _selectedHoldPreset;
+            }
+
+            var match = HoldPresets.FirstOrDefault(p => !p.IsCustom && p.Binding != null && p.Binding.Equals(HoldHotkey));
+            return match ?? HoldPresets.First(p => p.IsCustom);
+        }
+        set
+        {
+            if (value == null) return;
+            _selectedHoldPreset = value;
+            OnPropertyChanged(nameof(SelectedHoldPreset));
+
+            if (!value.IsCustom && value.Binding != null)
+            {
+                SetRecordedHotkey(HotkeyType.Hold, value.Binding.Clone());
+            }
+            else if (value.IsCustom)
+            {
+                CustomTargetIsHold = true;
+            }
+        }
+    }
+
+    private HotkeyPresetItem? _selectedTogglePreset;
+    public HotkeyPresetItem? SelectedTogglePreset
+    {
+        get
+        {
+            if (_selectedTogglePreset != null)
+            {
+                if (_selectedTogglePreset.IsCustom) return _selectedTogglePreset;
+                if (_selectedTogglePreset.Binding != null && _selectedTogglePreset.Binding.Equals(ToggleHotkey)) return _selectedTogglePreset;
+            }
+
+            var match = TogglePresets.FirstOrDefault(p => !p.IsCustom && p.Binding != null && p.Binding.Equals(ToggleHotkey));
+            return match ?? TogglePresets.First(p => p.IsCustom);
+        }
+        set
+        {
+            if (value == null) return;
+            _selectedTogglePreset = value;
+            OnPropertyChanged(nameof(SelectedTogglePreset));
+
+            if (!value.IsCustom && value.Binding != null)
+            {
+                SetRecordedHotkey(HotkeyType.Toggle, value.Binding.Clone());
+            }
+            else if (value.IsCustom)
+            {
+                CustomTargetIsToggle = true;
+            }
+        }
+    }
+
     // Custom Hotkey Builder Properties
     private bool _customTargetIsHold = true;
     public bool CustomTargetIsHold
@@ -732,9 +838,13 @@ public class SettingsViewModel : ViewModelBase, IDisposable
 
             HoldHotkey = settings.HoldHotkey.Clone();
             HoldHotkeyDisplay = HoldHotkey.ToString();
+            _selectedHoldPreset = null;
+            OnPropertyChanged(nameof(SelectedHoldPreset));
 
             ToggleHotkey = settings.ToggleHotkey.Clone();
             ToggleHotkeyDisplay = ToggleHotkey.ToString();
+            _selectedTogglePreset = null;
+            OnPropertyChanged(nameof(SelectedTogglePreset));
         }
         finally
         {
@@ -1140,12 +1250,24 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             case HotkeyType.Hold:
                 SetProperty(ref _holdHotkey, binding, nameof(HoldHotkey));
                 HoldHotkeyDisplay = binding.ToString();
+                _selectedHoldPreset = null;
+                OnPropertyChanged(nameof(SelectedHoldPreset));
+                HotkeyStatusMessage = $"✓ Hold-to-Talk shortcut set to {binding}!";
                 break;
             case HotkeyType.Toggle:
                 SetProperty(ref _toggleHotkey, binding, nameof(ToggleHotkey));
                 ToggleHotkeyDisplay = binding.ToString();
+                _selectedTogglePreset = null;
+                OnPropertyChanged(nameof(SelectedTogglePreset));
+                HotkeyStatusMessage = $"✓ Toggle Mode shortcut set to {binding}!";
                 break;
         }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3500);
+            HotkeyStatusMessage = string.Empty;
+        });
 
         // Hotkey recording produces unsaved changes until user explicitly saves
         HasUnsavedChanges = true;
@@ -1201,11 +1323,39 @@ public class SettingsViewModel : ViewModelBase, IDisposable
                     Key = VirtualKey.Space 
                 });
                 break;
+            case "Ctrl+Space":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.Ctrl, 
+                    Key = VirtualKey.Space 
+                });
+                break;
             case "Ctrl+Alt+Space":
                 SetRecordedHotkey(HotkeyType.Toggle, new HotkeyBinding 
                 { 
                     Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, 
                     Key = VirtualKey.Space 
+                });
+                break;
+            case "Win+H":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.Win, 
+                    Key = VirtualKey.H 
+                });
+                break;
+            case "F8":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.None, 
+                    Key = VirtualKey.F8 
+                });
+                break;
+            case "F9":
+                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
+                { 
+                    Modifiers = CoreModifierKeys.None, 
+                    Key = VirtualKey.F9 
                 });
                 break;
         }
@@ -1496,4 +1646,9 @@ internal class ApiKeyPattern
 /// Display item for virtual key selection in settings UI.
 /// </summary>
 public record KeyOption(string Display, VirtualKey Value);
+
+/// <summary>
+/// Display item for preset hotkeys in settings dropdowns and cards.
+/// </summary>
+public record HotkeyPresetItem(string Display, HotkeyBinding? Binding, bool IsCustom = false);
 
