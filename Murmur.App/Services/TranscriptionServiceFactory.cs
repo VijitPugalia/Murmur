@@ -69,6 +69,10 @@ public class TranscriptionServiceFactory : ITranscriptionService
             else
             {
                 System.IO.File.AppendAllText(logPath, $"  Error: {result.Error?.Type} - {result.Error?.Message}\n");
+                if (!string.IsNullOrWhiteSpace(result.Error?.ResponseBody))
+                {
+                    System.IO.File.AppendAllText(logPath, $"  Response body: {result.Error.ResponseBody}\n");
+                }
             }
             
             return result;

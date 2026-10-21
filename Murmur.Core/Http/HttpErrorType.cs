@@ -133,12 +133,89 @@ public class HttpError
 
     /// <summary>
     /// Creates an HTTP error from a status code with a friendly message.
+    /// Extracts provider-specific error message from the response body if available.
     /// </summary>
     public static HttpError FromStatusCode(int statusCode, string? host, string? responseBody = null)
     {
         var type = GetErrorTypeFromStatusCode(statusCode);
-        var message = HttpTransport.FriendlyHttpMessage(statusCode, host);
+        var defaultMessage = HttpTransport.FriendlyHttpMessage(statusCode, host);
+        
+        var providerMessage = TryExtractProviderErrorMessage(responseBody);
+        string message;
+        if (!string.IsNullOrWhiteSpace(providerMessage))
+        {
+            // Sanitize message to avoid exposing raw JSON brackets or control characters
+            var clean = providerMessage.Replace('{', ' ').Replace('}', ' ').Trim();
+            if (clean.Length > 0)
+            {
+                var provider = host ?? "Provider";
+                message = statusCode switch
+                {
+                    400 => $"{provider} rejected the request (HTTP 400): {clean}",
+                    _ => $"{defaultMessage} ({clean})"
+                };
+            }
+            else
+            {
+                message = defaultMessage;
+            }
+        }
+        else
+        {
+            message = defaultMessage;
+        }
+
         return new HttpError(type, message, statusCode, responseBody);
+    }
+
+    /// <summary>
+    /// Attempts to extract a readable error message from a provider's JSON response body.
+    /// Supports OpenAI/Groq {"error": {"message": "..."}}, {"error": "..."}, and {"message": "..."}.
+    /// </summary>
+    public static string? TryExtractProviderErrorMessage(string? responseBody)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            if (root.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("error", out var errorElement))
+                {
+                    if (errorElement.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                        errorElement.TryGetProperty("message", out var msgElement) &&
+                        msgElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var msg = msgElement.GetString()?.Trim();
+                        if (!string.IsNullOrWhiteSpace(msg)) return msg;
+                    }
+                    else if (errorElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var msg = errorElement.GetString()?.Trim();
+                        if (!string.IsNullOrWhiteSpace(msg)) return msg;
+                    }
+                }
+
+                if (root.TryGetProperty("message", out var directMsg) &&
+                    directMsg.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    var msg = directMsg.GetString()?.Trim();
+                    if (!string.IsNullOrWhiteSpace(msg)) return msg;
+                }
+            }
+        }
+        catch
+        {
+            // Non-JSON response or parsing failure
+        }
+
+        return null;
     }
 
     /// <summary>

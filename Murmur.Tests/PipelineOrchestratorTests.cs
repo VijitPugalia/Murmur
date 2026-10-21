@@ -258,6 +258,49 @@ public class PipelineOrchestratorTests
     #region StopAsync - Empty Transcript Tests
 
     [Fact]
+    public async Task StopAsync_AudioFileTooShort_CompletesCleanlyWithoutCallingTranscription()
+    {
+        // Arrange
+        var tempFile = Path.Combine(Path.GetTempPath(), $"short_{Guid.NewGuid():N}.wav");
+        await File.WriteAllBytesAsync(tempFile, new byte[200]); // 200 bytes is < 44 + 3200 bytes
+
+        try
+        {
+            PipelineCompletedEventArgs? completedArgs = null;
+            _orchestrator.Completed += (s, e) => completedArgs = e;
+
+            _mockAudioRecorder
+                .Setup(r => r.StartRecordingAsync(It.IsAny<string?>()))
+                .Returns(Task.CompletedTask);
+            _mockAudioRecorder
+                .Setup(r => r.StopRecordingAsync())
+                .ReturnsAsync(tempFile);
+
+            await _orchestrator.StartAsync(RecordingMode.Hold);
+
+            // Act
+            await _orchestrator.StopAsync();
+
+            // Assert
+            Assert.NotNull(completedArgs);
+            Assert.Equal(string.Empty, completedArgs!.Transcript);
+            Assert.False(completedArgs.WasCancelled);
+            Assert.Equal(PipelineState.Idle, _orchestrator.CurrentState);
+
+            _mockTranscriptionService.Verify(t => t.TranscribeAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [Fact]
     public async Task StopAsync_EmptyAudioFile_CompletesWithEmptyTranscript()
     {
         // Arrange

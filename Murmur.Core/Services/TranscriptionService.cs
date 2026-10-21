@@ -332,17 +332,17 @@ public class TranscriptionService : ITranscriptionService, IDisposable
         return httpError.Type switch
         {
             HttpErrorType.AuthenticationError => 
-                TranscriptionError.AuthenticationError(httpError.Message),
+                TranscriptionError.AuthenticationError(httpError.Message, httpError.ResponseBody),
             HttpErrorType.AuthorizationError => 
-                TranscriptionError.AuthenticationError(httpError.Message),
+                TranscriptionError.AuthenticationError(httpError.Message, httpError.ResponseBody),
             HttpErrorType.Timeout => 
-                new TranscriptionError(TranscriptionErrorType.Timeout, httpError.Message),
+                new TranscriptionError(TranscriptionErrorType.Timeout, httpError.Message, httpError.ResponseBody),
             HttpErrorType.ServerError => 
-                TranscriptionError.ServerError(httpError.Message),
+                TranscriptionError.ServerError(httpError.Message, httpError.ResponseBody),
             HttpErrorType.NetworkError => 
-                TranscriptionError.NetworkError(httpError.Message),
+                TranscriptionError.NetworkError(httpError.Message, httpError.ResponseBody),
             _ => 
-                TranscriptionError.NetworkError(httpError.Message)
+                TranscriptionError.NetworkError(httpError.Message, httpError.ResponseBody)
         };
     }
 

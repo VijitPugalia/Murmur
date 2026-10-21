@@ -211,6 +211,21 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
                 return;
             }
 
+            // Check if audio file has sufficient data (avoid uploading accidental taps/empty recordings)
+            if (File.Exists(_currentAudioFilePath))
+            {
+                var fileInfo = new FileInfo(_currentAudioFilePath);
+                // At 16kHz 16-bit Mono (32,000 bytes/sec), a 44-byte WAV header with <= 3,200 bytes
+                // represents less than 100ms of audio. Whisper providers (Groq/OpenAI) reject sub-100ms
+                // files with HTTP 400. Treat these brief accidental taps as cancelled cleanly.
+                if (fileInfo.Length <= 44 + 3200)
+                {
+                    DebugLogger.Log($"  Audio file too short ({fileInfo.Length} bytes, <100ms), ignoring accidental tap\n");
+                    HandleCompletion(string.Empty, wasCancelled: false);
+                    return;
+                }
+            }
+
             // Check for cancellation
             ct.ThrowIfCancellationRequested();
 
@@ -226,6 +241,10 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
             if (!transcriptionResult.Success)
             {
                 DebugLogger.Log($"  Transcription failed: {transcriptionResult.Error?.Message}\n");
+                if (!string.IsNullOrWhiteSpace(transcriptionResult.Error?.ResponseBody))
+                {
+                    DebugLogger.Log($"  Transcription response body: {transcriptionResult.Error.ResponseBody}\n");
+                }
                 HandleError(
                     PipelineState.Transcribing,
                     transcriptionResult.Error?.Message ?? "Transcription failed");

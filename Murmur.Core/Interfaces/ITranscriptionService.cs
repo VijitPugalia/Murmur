@@ -71,25 +71,31 @@ public class TranscriptionError
     public string Message { get; }
 
     /// <summary>
+    /// Gets the raw response body from the provider (if available).
+    /// </summary>
+    public string? ResponseBody { get; }
+
+    /// <summary>
     /// Creates a new transcription error.
     /// </summary>
-    public TranscriptionError(TranscriptionErrorType type, string message)
+    public TranscriptionError(TranscriptionErrorType type, string message, string? responseBody = null)
     {
         Type = type;
         Message = message;
+        ResponseBody = responseBody;
     }
 
     /// <summary>
     /// Creates a network error.
     /// </summary>
-    public static TranscriptionError NetworkError(string message) => 
-        new(TranscriptionErrorType.NetworkError, message);
+    public static TranscriptionError NetworkError(string message, string? responseBody = null) => 
+        new(TranscriptionErrorType.NetworkError, message, responseBody);
 
     /// <summary>
     /// Creates an authentication error.
     /// </summary>
-    public static TranscriptionError AuthenticationError(string message) => 
-        new(TranscriptionErrorType.AuthenticationError, message);
+    public static TranscriptionError AuthenticationError(string message, string? responseBody = null) => 
+        new(TranscriptionErrorType.AuthenticationError, message, responseBody);
 
     /// <summary>
     /// Creates a timeout error.
@@ -100,14 +106,14 @@ public class TranscriptionError
     /// <summary>
     /// Creates an invalid response error.
     /// </summary>
-    public static TranscriptionError InvalidResponse(string message) => 
-        new(TranscriptionErrorType.InvalidResponse, message);
+    public static TranscriptionError InvalidResponse(string message, string? responseBody = null) => 
+        new(TranscriptionErrorType.InvalidResponse, message, responseBody);
 
     /// <summary>
     /// Creates a server error.
     /// </summary>
-    public static TranscriptionError ServerError(string message) => 
-        new(TranscriptionErrorType.ServerError, message);
+    public static TranscriptionError ServerError(string message, string? responseBody = null) => 
+        new(TranscriptionErrorType.ServerError, message, responseBody);
 }
 
 /// <summary>
