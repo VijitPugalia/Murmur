@@ -1,4 +1,4 @@
-﻿namespace Murmur.Core.Interfaces;
+namespace Murmur.Core.Interfaces;
 
 /// <summary>
 /// Interface for managing clipboard operations and paste simulation.
@@ -17,6 +17,17 @@ public interface IClipboardManager
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the paste operation is done (including clipboard restore if enabled).</returns>
     Task PasteTextAsync(string text, bool preserveClipboard = true, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pastes text into the active application with optional rich HTML formatting and clipboard history exclusion.
+    /// </summary>
+    /// <param name="text">The plain text to paste.</param>
+    /// <param name="preserveClipboard">Whether to restore original clipboard after paste.</param>
+    /// <param name="html">Optional rich HTML fragment. If null, auto-generates HTML if markdown is detected.</param>
+    /// <param name="excludeFromHistory">Whether to exclude this paste from Windows Clipboard History (Win+V).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the paste operation is done.</returns>
+    Task PasteTextAsync(string text, bool preserveClipboard, string? html, bool excludeFromHistory = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Pastes the most recently dictated transcript.
@@ -46,6 +57,16 @@ public interface IClipboardManager
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the text has been set.</returns>
     Task SetTextAsync(string text, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets text on the clipboard with optional HTML and history exclusion.
+    /// </summary>
+    /// <param name="text">The plain text to set.</param>
+    /// <param name="html">Optional rich HTML representation.</param>
+    /// <param name="excludeFromHistory">Whether to exclude from Windows Clipboard History (Win+V).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when text has been set.</returns>
+    Task SetTextAsync(string text, string? html, bool excludeFromHistory = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets or sets the delay after pasting before restoring the original clipboard contents.

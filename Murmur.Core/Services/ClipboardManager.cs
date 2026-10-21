@@ -1,5 +1,7 @@
-﻿using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Murmur.Core.Interfaces;
 using InputSimulatorStandard;
 using InputSimulatorStandard.Native;
@@ -8,42 +10,18 @@ namespace Murmur.Core.Services;
 
 /// <summary>
 /// Manages clipboard operations using Windows Clipboard APIs (User32.dll P/Invoke).
-/// Provides async clipboard access with retry logic, paste simulation, and clipboard preservation.
+/// Provides async clipboard access with retry logic, paste simulation, clipboard preservation,
+/// private clipboard isolation (excluding pastes from Win+V history), and rich dual-format HTML.
 /// </summary>
-/// <remarks>
-/// The Windows clipboard can be locked by other applications, so this implementation
-/// includes retry logic with exponential backoff. All clipboard operations must run
-/// on an STA thread, which is handled automatically by this class.
-/// 
-/// Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5, 6.6
-/// </remarks>
 public sealed class ClipboardManager : IClipboardManager, IDisposable
 {
     #region Native Methods and Constants
 
-    /// <summary>
-    /// Standard clipboard format for Unicode text.
-    /// </summary>
     private const uint CF_UNICODETEXT = 13;
-
-    /// <summary>
-    /// Global memory allocation flag.
-    /// </summary>
     private const uint GMEM_MOVEABLE = 0x0002;
 
-    /// <summary>
-    /// Maximum number of retry attempts for clipboard operations.
-    /// </summary>
     private const int MaxRetryAttempts = 10;
-
-    /// <summary>
-    /// Initial delay between retry attempts in milliseconds.
-    /// </summary>
     private const int InitialRetryDelayMs = 10;
-
-    /// <summary>
-    /// Maximum delay between retry attempts in milliseconds.
-    /// </summary>
     private const int MaxRetryDelayMs = 100;
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -67,6 +45,9 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsClipboardFormatAvailable(uint format);
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern uint RegisterClipboardFormat(string lpszFormat);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
@@ -108,14 +89,19 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
     /// <summary>
     /// Creates a new ClipboardManager with a custom InputSimulator (for testing).
     /// </summary>
-    /// <param name="inputSimulator">The input simulator to use for paste simulation.</param>
     public ClipboardManager(IInputSimulator inputSimulator)
     {
         _inputSimulator = inputSimulator ?? throw new ArgumentNullException(nameof(inputSimulator));
     }
 
     /// <inheritdoc />
-    public async Task PasteTextAsync(string text, bool preserveClipboard = true, CancellationToken cancellationToken = default)
+    public Task PasteTextAsync(string text, bool preserveClipboard = true, CancellationToken cancellationToken = default)
+    {
+        return PasteTextAsync(text, preserveClipboard, html: null, excludeFromHistory: true, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task PasteTextAsync(string text, bool preserveClipboard, string? html, bool excludeFromHistory = true, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -138,8 +124,8 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
                 originalClipboardContent = await GetTextAsync(cancellationToken);
             }
 
-            // Set the transcript on the clipboard
-            await SetTextAsync(text, cancellationToken);
+            // Set the transcript on the clipboard with HTML & private exclusion
+            await SetTextAsync(text, html, excludeFromHistory, cancellationToken);
 
             // Small delay to ensure clipboard is ready
             await Task.Delay(50, cancellationToken);
@@ -150,13 +136,12 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
             // Restore original clipboard content after delay if preservation is enabled
             if (preserveClipboard && originalClipboardContent != null)
             {
-                // Don't cancel the restore operation even if the main token is cancelled
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         await Task.Delay(ClipboardRestoreDelay, CancellationToken.None);
-                        await SetTextAsync(originalClipboardContent, CancellationToken.None);
+                        await SetTextAsync(originalClipboardContent, html: null, excludeFromHistory: false, CancellationToken.None);
                     }
                     catch
                     {
@@ -189,8 +174,8 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
             return;
         }
 
-        // For "Paste Again", we don't preserve clipboard - the user explicitly wants this text
-        await SetTextAsync(lastTranscript, cancellationToken);
+        // For "Paste Again", we don't preserve clipboard
+        await SetTextAsync(lastTranscript, html: null, excludeFromHistory: true, cancellationToken);
         await Task.Delay(50, cancellationToken);
         SimulatePaste();
     }
@@ -213,9 +198,15 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
     /// <inheritdoc />
     public Task SetTextAsync(string text, CancellationToken cancellationToken = default)
     {
+        return SetTextAsync(text, html: null, excludeFromHistory: true, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task SetTextAsync(string text, string? html, bool excludeFromHistory = true, CancellationToken cancellationToken = default)
+    {
         return RunOnStaThreadAsync(() =>
         {
-            SetTextToClipboardWithRetry(text, cancellationToken);
+            SetTextToClipboardWithRetry(text, html, excludeFromHistory, cancellationToken);
             return (object?)null;
         }, cancellationToken);
     }
@@ -263,7 +254,7 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
     /// <summary>
     /// Sets text to the clipboard with retry logic.
     /// </summary>
-    private void SetTextToClipboardWithRetry(string text, CancellationToken cancellationToken)
+    private void SetTextToClipboardWithRetry(string text, string? html, bool excludeFromHistory, CancellationToken cancellationToken)
     {
         var delay = InitialRetryDelayMs;
 
@@ -273,7 +264,7 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
 
             try
             {
-                SetTextToClipboard(text);
+                SetTextToClipboard(text, html, excludeFromHistory);
                 return;
             }
             catch (ClipboardLockedException)
@@ -292,7 +283,6 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
     /// <summary>
     /// Gets Unicode text from the clipboard using Windows APIs.
     /// </summary>
-    /// <exception cref="ClipboardLockedException">Thrown when the clipboard cannot be opened.</exception>
     private static string? GetTextFromClipboard()
     {
         if (!IsClipboardFormatAvailable(CF_UNICODETEXT))
@@ -321,7 +311,6 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
 
             try
             {
-                // Read the Unicode string from unmanaged memory
                 return Marshal.PtrToStringUni(pointer);
             }
             finally
@@ -336,18 +325,15 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
     }
 
     /// <summary>
-    /// Sets Unicode text to the clipboard using Windows APIs.
+    /// Sets Unicode text, optional HTML, and private clipboard exclusion flags.
     /// </summary>
-    /// <exception cref="ClipboardLockedException">Thrown when the clipboard cannot be opened.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when clipboard operations fail.</exception>
-    private static void SetTextToClipboard(string text)
+    private static void SetTextToClipboard(string text, string? html, bool excludeFromHistory)
     {
         if (!OpenClipboard(IntPtr.Zero))
         {
             throw new ClipboardLockedException("Failed to open clipboard for writing.");
         }
 
-        IntPtr hGlobal = IntPtr.Zero;
         try
         {
             if (!EmptyClipboard())
@@ -355,50 +341,235 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
                 throw new InvalidOperationException("Failed to empty clipboard.");
             }
 
-            // Convert string to Unicode bytes (including null terminator)
-            var bytes = Encoding.Unicode.GetBytes(text + '\0');
-            var size = (UIntPtr)bytes.Length;
+            // 1. Unicode Plain Text (CF_UNICODETEXT)
+            SetClipboardUnicodeText(text);
 
-            hGlobal = GlobalAlloc(GMEM_MOVEABLE, size);
-            if (hGlobal == IntPtr.Zero)
+            // 2. Rich HTML Format (if explicitly provided, or auto-converted from Markdown)
+            string? effectiveHtml = html;
+            if (string.IsNullOrEmpty(effectiveHtml) && HasMarkdown(text))
             {
-                throw new InvalidOperationException("Failed to allocate global memory for clipboard.");
+                effectiveHtml = MarkdownToHtml(text);
             }
 
-            var pointer = GlobalLock(hGlobal);
-            if (pointer == IntPtr.Zero)
+            if (!string.IsNullOrEmpty(effectiveHtml))
             {
-                throw new InvalidOperationException("Failed to lock global memory.");
+                SetClipboardHtml(effectiveHtml);
             }
 
-            try
+            // 3. Exclude from Windows Clipboard History (Win + V) and Cloud Clipboard
+            if (excludeFromHistory)
             {
-                Marshal.Copy(bytes, 0, pointer, bytes.Length);
+                SetClipboardDwordFlag("CanIncludeInClipboardHistory", 0);
+                SetClipboardDwordFlag("CanUploadToCloudClipboard", 0);
+                SetClipboardDwordFlag("ExcludeClipboardContentFromMonitorProcessing", 0);
             }
-            finally
-            {
-                GlobalUnlock(hGlobal);
-            }
-
-            if (SetClipboardData(CF_UNICODETEXT, hGlobal) == IntPtr.Zero)
-            {
-                throw new InvalidOperationException("Failed to set clipboard data.");
-            }
-
-            // Clipboard now owns the memory, don't free it
-            hGlobal = IntPtr.Zero;
         }
         finally
         {
-            // Free memory if SetClipboardData failed (clipboard didn't take ownership)
-            if (hGlobal != IntPtr.Zero)
-            {
-                GlobalFree(hGlobal);
-            }
-
             CloseClipboard();
         }
     }
+
+    private static void SetClipboardUnicodeText(string text)
+    {
+        var bytes = Encoding.Unicode.GetBytes(text + '\0');
+        var size = (UIntPtr)bytes.Length;
+
+        var hGlobal = GlobalAlloc(GMEM_MOVEABLE, size);
+        if (hGlobal == IntPtr.Zero)
+        {
+            throw new InvalidOperationException("Failed to allocate global memory for clipboard.");
+        }
+
+        var pointer = GlobalLock(hGlobal);
+        if (pointer == IntPtr.Zero)
+        {
+            GlobalFree(hGlobal);
+            throw new InvalidOperationException("Failed to lock global memory.");
+        }
+
+        try
+        {
+            Marshal.Copy(bytes, 0, pointer, bytes.Length);
+        }
+        finally
+        {
+            GlobalUnlock(hGlobal);
+        }
+
+        if (SetClipboardData(CF_UNICODETEXT, hGlobal) == IntPtr.Zero)
+        {
+            GlobalFree(hGlobal);
+            throw new InvalidOperationException("Failed to set clipboard data.");
+        }
+    }
+
+    private static void SetClipboardHtml(string htmlFragment)
+    {
+        var format = RegisterClipboardFormat("HTML Format");
+        if (format == 0) return;
+
+        var envelope = BuildCfHtmlEnvelope(htmlFragment);
+        var bytes = Encoding.UTF8.GetBytes(envelope + '\0');
+
+        var hGlobal = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+        if (hGlobal == IntPtr.Zero) return;
+
+        var pointer = GlobalLock(hGlobal);
+        if (pointer == IntPtr.Zero)
+        {
+            GlobalFree(hGlobal);
+            return;
+        }
+
+        try
+        {
+            Marshal.Copy(bytes, 0, pointer, bytes.Length);
+        }
+        finally
+        {
+            GlobalUnlock(hGlobal);
+        }
+
+        if (SetClipboardData(format, hGlobal) == IntPtr.Zero)
+        {
+            GlobalFree(hGlobal);
+        }
+    }
+
+    private static void SetClipboardDwordFlag(string formatName, uint value)
+    {
+        var format = RegisterClipboardFormat(formatName);
+        if (format == 0) return;
+
+        var hGlobal = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)sizeof(uint));
+        if (hGlobal == IntPtr.Zero) return;
+
+        var pointer = GlobalLock(hGlobal);
+        if (pointer == IntPtr.Zero)
+        {
+            GlobalFree(hGlobal);
+            return;
+        }
+
+        try
+        {
+            Marshal.WriteInt32(pointer, (int)value);
+        }
+        finally
+        {
+            GlobalUnlock(hGlobal);
+        }
+
+        if (SetClipboardData(format, hGlobal) == IntPtr.Zero)
+        {
+            GlobalFree(hGlobal);
+        }
+    }
+
+    #region HTML and Markdown Formatting Helpers
+
+    /// <summary>
+    /// Builds the standard Microsoft CF_HTML envelope with byte-accurate offsets.
+    /// </summary>
+    public static string BuildCfHtmlEnvelope(string htmlFragment)
+    {
+        const string headerTemplate =
+            "Version:0.9\r\n" +
+            "StartHTML:{0:D8}\r\n" +
+            "EndHTML:{1:D8}\r\n" +
+            "StartFragment:{2:D8}\r\n" +
+            "EndFragment:{3:D8}\r\n";
+
+        const string htmlPrefix = "<!DOCTYPE html><html><body><!--StartFragment-->";
+        const string htmlSuffix = "<!--EndFragment--></body></html>";
+
+        string dummyHeader = string.Format(headerTemplate, 0, 0, 0, 0);
+        int startHtml = Encoding.UTF8.GetByteCount(dummyHeader);
+        int startFragment = startHtml + Encoding.UTF8.GetByteCount(htmlPrefix);
+        int endFragment = startFragment + Encoding.UTF8.GetByteCount(htmlFragment);
+        int endHtml = endFragment + Encoding.UTF8.GetByteCount(htmlSuffix);
+
+        string header = string.Format(headerTemplate, startHtml, endHtml, startFragment, endFragment);
+        return header + htmlPrefix + htmlFragment + htmlSuffix;
+    }
+
+    /// <summary>
+    /// Checks whether text contains Markdown elements (bold, italic, inline code, or lists).
+    /// </summary>
+    public static bool HasMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("**") ||
+               text.Contains('`') ||
+               text.Contains("\n- ") || text.StartsWith("- ") ||
+               text.Contains("\n* ") || text.StartsWith("* ");
+    }
+
+    /// <summary>
+    /// Converts a basic Markdown string to an HTML fragment.
+    /// </summary>
+    public static string MarkdownToHtml(string markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
+
+        var lines = markdown.Replace("\r\n", "\n").Split('\n');
+        var sb = new StringBuilder();
+        bool inList = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
+            {
+                if (!inList)
+                {
+                    sb.Append("<ul>");
+                    inList = true;
+                }
+                var itemContent = ProcessInlineMarkdown(trimmed.Substring(2));
+                sb.Append("<li>").Append(itemContent).Append("</li>");
+            }
+            else
+            {
+                if (inList)
+                {
+                    sb.Append("</ul>");
+                    inList = false;
+                }
+                if (!string.IsNullOrEmpty(trimmed))
+                {
+                    sb.Append("<p>").Append(ProcessInlineMarkdown(trimmed)).Append("</p>");
+                }
+            }
+        }
+
+        if (inList)
+        {
+            sb.Append("</ul>");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string ProcessInlineMarkdown(string text)
+    {
+        // 1. Basic HTML Escape
+        var s = System.Net.WebUtility.HtmlEncode(text);
+
+        // 2. Bold: **text**
+        s = Regex.Replace(s, @"\*\*(.+?)\*\*", "<b>$1</b>");
+
+        // 3. Italic: *text*
+        s = Regex.Replace(s, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<i>$1</i>");
+
+        // 4. Code: `text`
+        s = Regex.Replace(s, @"`(.+?)`", "<code>$1</code>");
+
+        return s;
+    }
+
+    #endregion
 
     /// <summary>
     /// Runs an action on an STA thread. Required for clipboard operations in Windows.
@@ -450,17 +621,11 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
 /// </summary>
 public class ClipboardLockedException : InvalidOperationException
 {
-    /// <summary>
-    /// Creates a new ClipboardLockedException with the specified message.
-    /// </summary>
     public ClipboardLockedException(string message)
         : base(message)
     {
     }
 
-    /// <summary>
-    /// Creates a new ClipboardLockedException with the specified message and inner exception.
-    /// </summary>
     public ClipboardLockedException(string message, Exception innerException)
         : base(message, innerException)
     {

@@ -58,6 +58,22 @@ public class AppSettings : IEquatable<AppSettings>
     };
 
     /// <summary>
+    /// Whether to use unified hotkey mode.
+    /// </summary>
+    [JsonPropertyName("useUnifiedHotkey")]
+    public bool UseUnifiedHotkey { get; set; } = true;
+
+    /// <summary>
+    /// Hotkey binding for unified mode. Default: Ctrl + Windows.
+    /// </summary>
+    [JsonPropertyName("unifiedHotkey")]
+    public HotkeyBinding UnifiedHotkey { get; set; } = new()
+    {
+        Modifiers = ModifierKeys.Ctrl | ModifierKeys.Win,
+        Key = VirtualKey.None
+    };
+
+    /// <summary>
     /// Device ID of the selected microphone, or null for default.
     /// </summary>
     [JsonPropertyName("selectedMicrophoneId")]
@@ -234,6 +250,8 @@ public class AppSettings : IEquatable<AppSettings>
             PostProcessingFallbackModel = PostProcessingFallbackModel,
             HoldHotkey = HoldHotkey.Clone(),
             ToggleHotkey = ToggleHotkey.Clone(),
+            UseUnifiedHotkey = UseUnifiedHotkey,
+            UnifiedHotkey = UnifiedHotkey.Clone(),
             SelectedMicrophoneId = SelectedMicrophoneId,
             CustomVocabulary = CustomVocabulary,
             PreserveClipboard = PreserveClipboard,
@@ -271,6 +289,8 @@ public class AppSettings : IEquatable<AppSettings>
                PostProcessingFallbackModel == other.PostProcessingFallbackModel &&
                HoldHotkey.Equals(other.HoldHotkey) &&
                ToggleHotkey.Equals(other.ToggleHotkey) &&
+               UseUnifiedHotkey == other.UseUnifiedHotkey &&
+               UnifiedHotkey.Equals(other.UnifiedHotkey) &&
                SelectedMicrophoneId == other.SelectedMicrophoneId &&
                CustomVocabulary == other.CustomVocabulary &&
                PreserveClipboard == other.PreserveClipboard &&
@@ -307,6 +327,8 @@ public class AppSettings : IEquatable<AppSettings>
         hash.Add(PostProcessingFallbackModel);
         hash.Add(HoldHotkey);
         hash.Add(ToggleHotkey);
+        hash.Add(UseUnifiedHotkey);
+        hash.Add(UnifiedHotkey);
         hash.Add(SelectedMicrophoneId);
         hash.Add(CustomVocabulary);
         hash.Add(PreserveClipboard);

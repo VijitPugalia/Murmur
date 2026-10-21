@@ -84,10 +84,10 @@ public partial class SettingsWindow : Window
     {
         // Hide all tabs
         if (GeneralTab != null) GeneralTab.Visibility = Visibility.Collapsed;
-        if (PromptsTab != null) PromptsTab.Visibility = Visibility.Collapsed;
+        if (AudioTab != null) AudioTab.Visibility = Visibility.Collapsed;
+        if (AITab != null) AITab.Visibility = Visibility.Collapsed;
         if (MacrosTab != null) MacrosTab.Visibility = Visibility.Collapsed;
-        if (RunLogTab != null) RunLogTab.Visibility = Visibility.Collapsed;
-        if (DebugTab != null) DebugTab.Visibility = Visibility.Collapsed;
+        if (AdvancedTab != null) AdvancedTab.Visibility = Visibility.Collapsed;
         
         // Show the selected tab
         switch (tabName)
@@ -95,21 +95,24 @@ public partial class SettingsWindow : Window
             case "General":
                 if (GeneralTab != null) GeneralTab.Visibility = Visibility.Visible;
                 break;
+            case "Audio":
+                if (AudioTab != null) AudioTab.Visibility = Visibility.Visible;
+                break;
+            case "AI":
             case "Prompts":
-                if (PromptsTab != null) PromptsTab.Visibility = Visibility.Visible;
+                if (AITab != null) AITab.Visibility = Visibility.Visible;
                 break;
             case "Macros":
                 if (MacrosTab != null) MacrosTab.Visibility = Visibility.Visible;
                 break;
+            case "Advanced":
             case "RunLog":
-                if (RunLogTab != null)
+            case "Debug":
+                if (AdvancedTab != null)
                 {
-                    RunLogTab.Visibility = Visibility.Visible;
+                    AdvancedTab.Visibility = Visibility.Visible;
                     LoadRunLog();
                 }
-                break;
-            case "Debug":
-                if (DebugTab != null) DebugTab.Visibility = Visibility.Visible;
                 break;
         }
     }
@@ -119,6 +122,11 @@ public partial class SettingsWindow : Window
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
         var os = Environment.OSVersion;
         BuildInfoText.Text = $"Murmur {version}\nWindows {os.Version.Major}.{os.Version.Minor} ({(Environment.Is64BitOperatingSystem ? "x64" : "x86")})";
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private void OnRequestClose(object? sender, bool saved)
@@ -160,6 +168,8 @@ public partial class SettingsWindow : Window
             
             var config = new HotkeyConfiguration
             {
+                UseUnifiedHotkey = settings.UseUnifiedHotkey,
+                UnifiedHotkey = settings.UnifiedHotkey,
                 HoldHotkey = settings.HoldHotkey,
                 ToggleHotkey = settings.ToggleHotkey,
                 PasteAgainHotkey = null
@@ -175,7 +185,9 @@ public partial class SettingsWindow : Window
         _isRecordingHotkey = true;
         _recordingHotkeyType = e.HotkeyType;
 
-        if (e.HotkeyType == HotkeyType.Hold)
+        if (e.HotkeyType == HotkeyType.Unified)
+            _viewModel.UnifiedHotkeyDisplay = "Press keys...";
+        else if (e.HotkeyType == HotkeyType.Hold)
             _viewModel.HoldHotkeyDisplay = "Press keys...";
         else
             _viewModel.ToggleHotkeyDisplay = "Press keys...";
@@ -223,7 +235,9 @@ public partial class SettingsWindow : Window
                 ? $"{new HotkeyBinding { Modifiers = modifiers, Key = VirtualKey.None }} (Release or press key)"
                 : "Press keys...";
 
-            if (_recordingHotkeyType == HotkeyType.Hold)
+            if (_recordingHotkeyType == HotkeyType.Unified)
+                _viewModel.UnifiedHotkeyDisplay = displayText;
+            else if (_recordingHotkeyType == HotkeyType.Hold)
                 _viewModel.HoldHotkeyDisplay = displayText;
             else
                 _viewModel.ToggleHotkeyDisplay = displayText;
@@ -235,7 +249,9 @@ public partial class SettingsWindow : Window
         var virtualKey = ConvertToVirtualKey(e.Key);
         if (virtualKey == null)
         {
-            if (_recordingHotkeyType == HotkeyType.Hold)
+            if (_recordingHotkeyType == HotkeyType.Unified)
+                _viewModel.UnifiedHotkeyDisplay = "Invalid key!";
+            else if (_recordingHotkeyType == HotkeyType.Hold)
                 _viewModel.HoldHotkeyDisplay = "Invalid key!";
             else
                 _viewModel.ToggleHotkeyDisplay = "Invalid key!";
@@ -247,7 +263,9 @@ public partial class SettingsWindow : Window
         bool isFunctionKey = virtualKey.Value >= VirtualKey.F1 && virtualKey.Value <= VirtualKey.F12;
         if (modifiers == CoreModifierKeys.None && !isFunctionKey)
         {
-            if (_recordingHotkeyType == HotkeyType.Hold)
+            if (_recordingHotkeyType == HotkeyType.Unified)
+                _viewModel.UnifiedHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
+            else if (_recordingHotkeyType == HotkeyType.Hold)
                 _viewModel.HoldHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
             else
                 _viewModel.ToggleHotkeyDisplay = "Need modifier (Ctrl/Win/Alt/Shift)!";
@@ -294,7 +312,9 @@ public partial class SettingsWindow : Window
     {
         if (!_isRecordingHotkey) return;
         _isRecordingHotkey = false;
-        if (_recordingHotkeyType == HotkeyType.Hold)
+        if (_recordingHotkeyType == HotkeyType.Unified)
+            _viewModel.UnifiedHotkeyDisplay = _viewModel.UnifiedHotkey.ToString();
+        else if (_recordingHotkeyType == HotkeyType.Hold)
             _viewModel.HoldHotkeyDisplay = _viewModel.HoldHotkey.ToString();
         else
             _viewModel.ToggleHotkeyDisplay = _viewModel.ToggleHotkey.ToString();
@@ -590,4 +610,13 @@ public class BooleanToVisibilityConverter : IValueConverter
         => value is bool b && b ? Visibility.Visible : Visibility.Collapsed;
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => value is Visibility v && v == Visibility.Visible;
+}
+
+
+public class InverseBooleanConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is bool b ? !b : false;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is bool b ? !b : false;
 }

@@ -508,4 +508,74 @@ public class ClipboardManagerTests : IDisposable
     }
 
     #endregion
+
+    #region Rich HTML and Private Clipboard Tests
+
+    [Fact]
+    public void BuildCfHtmlEnvelope_ValidHtml_GeneratesCorrectOffsets()
+    {
+        // Arrange
+        var fragment = "<p>Hello <b>World</b></p>";
+
+        // Act
+        var envelope = ClipboardManager.BuildCfHtmlEnvelope(fragment);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(envelope);
+
+        // Assert
+        Assert.Contains("Version:0.9", envelope);
+        Assert.Contains("<!--StartFragment-->", envelope);
+        Assert.Contains("<!--EndFragment-->", envelope);
+
+        // Verify offset tags exist
+        var matchStartFrag = System.Text.RegularExpressions.Regex.Match(envelope, @"StartFragment:(\d+)");
+        var matchEndFrag = System.Text.RegularExpressions.Regex.Match(envelope, @"EndFragment:(\d+)");
+        Assert.True(matchStartFrag.Success);
+        Assert.True(matchEndFrag.Success);
+
+        int startOffset = int.Parse(matchStartFrag.Groups[1].Value);
+        int endOffset = int.Parse(matchEndFrag.Groups[1].Value);
+
+        // Check that substring at offsets contains the fragment
+        var fragmentBytes = new byte[endOffset - startOffset];
+        Array.Copy(bytes, startOffset, fragmentBytes, 0, fragmentBytes.Length);
+        var extractedFragment = System.Text.Encoding.UTF8.GetString(fragmentBytes);
+
+        Assert.Equal(fragment, extractedFragment);
+    }
+
+    [Fact]
+    public void MarkdownToHtml_BoldItalicCodeAndList_GeneratesExpectedHtml()
+    {
+        // Arrange
+        var markdown = "- Action item with **urgent** priority and `run_tests`\n- Follow up with *team*";
+
+        // Act
+        var html = ClipboardManager.MarkdownToHtml(markdown);
+
+        // Assert
+        Assert.Contains("<ul>", html);
+        Assert.Contains("<li>Action item with <b>urgent</b> priority and <code>run_tests</code></li>", html);
+        Assert.Contains("<li>Follow up with <i>team</i></li>", html);
+        Assert.Contains("</ul>", html);
+    }
+
+    [Fact]
+    public void HasMarkdown_DetectsTokensAccurately()
+    {
+        Assert.True(ClipboardManager.HasMarkdown("This is **bold** text"));
+        Assert.True(ClipboardManager.HasMarkdown("Code snippet: `int x = 5;`"));
+        Assert.True(ClipboardManager.HasMarkdown("- Item 1\n- Item 2"));
+        Assert.False(ClipboardManager.HasMarkdown("Plain regular text without formatting."));
+    }
+
+    [Fact]
+    public async Task SetTextAsync_WithHtmlAndExclusion_Succeeds()
+    {
+        // Act & Assert
+        await _clipboardManager.SetTextAsync("Test plain", "<p>Test <b>html</b></p>", excludeFromHistory: true);
+        var text = await _clipboardManager.GetTextAsync();
+        Assert.Equal("Test plain", text);
+    }
+
+    #endregion
 }

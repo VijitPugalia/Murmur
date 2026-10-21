@@ -1,10 +1,24 @@
-﻿namespace Murmur.Core.Models;
+namespace Murmur.Core.Models;
 
 /// <summary>
 /// Configuration for all application hotkeys.
 /// </summary>
 public class HotkeyConfiguration
 {
+    /// <summary>
+    /// Whether to use unified hotkey mode (one hotkey for both hold and double-tap toggle).
+    /// </summary>
+    public bool UseUnifiedHotkey { get; set; } = false;
+
+    /// <summary>
+    /// Hotkey binding for unified mode (hold to talk, double-tap to toggle). Default: Ctrl + Windows.
+    /// </summary>
+    public HotkeyBinding UnifiedHotkey { get; set; } = new()
+    {
+        Modifiers = ModifierKeys.Ctrl | ModifierKeys.Win,
+        Key = VirtualKey.None
+    };
+
     /// <summary>
     /// Hotkey binding for hold-to-talk mode.
     /// </summary>

@@ -250,6 +250,25 @@ public class AudioRecorderTests : IDisposable
         Assert.Null(exception);
     }
 
+
+    /// <summary>
+    /// Test that CancelRecording and Dispose invoke power management cleanup safely.
+    /// Validates: Windows 11 EcoQoS & Sleep prevention cleanup.
+    /// </summary>
+    [Fact]
+    public void PowerManagementCleanup_RunsSafelyOnCancelAndDispose()
+    {
+        // Arrange
+        var recorder = new AudioRecorder();
+
+        // Act & Assert - cancel when idle should safely invoke power restoration
+        var cancelEx = Record.Exception(() => recorder.CancelRecording());
+        Assert.Null(cancelEx);
+
+        var disposeEx = Record.Exception(() => recorder.Dispose());
+        Assert.Null(disposeEx);
+    }
+
     #endregion
 
     #region Recording Tests (Require Audio Hardware - Skipped by Default)

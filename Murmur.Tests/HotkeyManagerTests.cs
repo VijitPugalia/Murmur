@@ -867,4 +867,85 @@ public class HotkeyManagerTests : IDisposable
     }
 
     #endregion
+
+    #region Unified Hotkey Tests
+
+    [Fact]
+    [Trait("Category", "WindowsOnly")]
+    public void RegisterHotkeys_WithUnifiedConfiguration_SetsIsActiveTrue()
+    {
+        // Arrange
+        _hotkeyManager = new HotkeyManager();
+        var config = new HotkeyConfiguration
+        {
+            UseUnifiedHotkey = true,
+            UnifiedHotkey = new HotkeyBinding
+            {
+                Modifiers = ModifierKeys.Ctrl | ModifierKeys.Shift | ModifierKeys.Alt,
+                Key = VirtualKey.F12
+            }
+        };
+
+        // Act
+        var result = _hotkeyManager.RegisterHotkeys(config);
+
+        // Assert
+        Assert.True(result, "RegisterHotkeys should succeed with valid Unified hotkey");
+        Assert.True(_hotkeyManager.IsActive, "IsActive should be true after registering Unified hotkey");
+        Assert.NotNull(_hotkeyManager.CurrentConfiguration);
+        Assert.True(_hotkeyManager.CurrentConfiguration.UseUnifiedHotkey);
+    }
+
+    [Fact]
+    [Trait("Category", "WindowsOnly")]
+    public void CheckConflict_WithUnifiedHotkey_DetectsInternalConflict()
+    {
+        // Arrange
+        _hotkeyManager = new HotkeyManager();
+        var testBinding = new HotkeyBinding
+        {
+            Modifiers = ModifierKeys.Ctrl | ModifierKeys.Shift | ModifierKeys.Alt,
+            Key = VirtualKey.F12
+        };
+        var config = new HotkeyConfiguration
+        {
+            UseUnifiedHotkey = true,
+            UnifiedHotkey = testBinding
+        };
+        _hotkeyManager.RegisterHotkeys(config);
+
+        // Act
+        var conflict = _hotkeyManager.CheckConflict(testBinding);
+
+        // Assert
+        Assert.NotNull(conflict);
+        Assert.Equal("Murmur", conflict.ConflictingOwner);
+    }
+
+    [Fact]
+    [Trait("Category", "WindowsOnly")]
+    public void UnregisterAll_WithUnifiedConfiguration_SetsIsActiveFalse()
+    {
+        // Arrange
+        _hotkeyManager = new HotkeyManager();
+        var config = new HotkeyConfiguration
+        {
+            UseUnifiedHotkey = true,
+            UnifiedHotkey = new HotkeyBinding
+            {
+                Modifiers = ModifierKeys.Ctrl | ModifierKeys.Shift | ModifierKeys.Alt,
+                Key = VirtualKey.F12
+            }
+        };
+        _hotkeyManager.RegisterHotkeys(config);
+
+        // Act
+        _hotkeyManager.UnregisterAll();
+
+        // Assert
+        Assert.False(_hotkeyManager.IsActive);
+        Assert.Null(_hotkeyManager.CurrentConfiguration);
+    }
+
+    #endregion
 }

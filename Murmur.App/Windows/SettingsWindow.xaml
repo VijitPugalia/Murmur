@@ -7,67 +7,73 @@
         xmlns:local="clr-namespace:Murmur.App.Windows"
         mc:Ignorable="d"
         Title="Murmur Settings"
-        Height="750"
-        Width="820"
-        MinHeight="650"
-        MinWidth="720"
+        Height="730"
+        Width="920"
+        MinHeight="620"
+        MinWidth="820"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip"
-        Background="#F5F5F5"
+        Background="#F8FAFC"
         d:DataContext="{d:DesignInstance Type=viewmodels:SettingsViewModel, IsDesignTimeCreatable=True}">
 
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
-        
-        <!-- SettingsCard Style -->
+        <local:InverseBooleanConverter x:Key="InverseBool"/>
+
+        <!-- Settings Card Style -->
         <Style x:Key="SettingsCard" TargetType="Border">
-            <Setter Property="Background" Value="#80FFFFFF"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="18"/>
             <Setter Property="Margin" Value="0,0,0,16"/>
-            <Setter Property="BorderBrush" Value="#0F000000"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.04" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="CardHeader" TargetType="StackPanel">
             <Setter Property="Orientation" Value="Horizontal"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
         <Style x:Key="CardIcon" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Foreground" Value="#0078D4"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
         </Style>
 
         <Style x:Key="CardTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#1A1A1A"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="FieldLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Foreground" Value="#334155"/>
             <Setter Property="Margin" Value="0,10,0,4"/>
         </Style>
 
         <Style x:Key="FieldDescription" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#64748B"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,4,0,0"/>
         </Style>
 
         <Style x:Key="InputTextBox" TargetType="TextBox">
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Background" Value="#FAFAFA"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -75,7 +81,7 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5">
+                                CornerRadius="6">
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -84,11 +90,11 @@
         </Style>
 
         <Style x:Key="InputPasswordBox" TargetType="PasswordBox">
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="Background" Value="#FAFAFA"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="FontFamily" Value="Consolas, Segoe UI"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -96,7 +102,7 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5">
+                                CornerRadius="6">
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -107,51 +113,31 @@
         <Style TargetType="CheckBox">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="#333333"/>
-            <Setter Property="Margin" Value="0,4,0,4"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="Margin" Value="0,5,0,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-        <Style x:Key="SmallButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#0078D4"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="FontSize" Value="11"/>
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,8"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <TextBlock Text="{TemplateBinding Content}" 
-                                   Foreground="{TemplateBinding Foreground}"
-                                   FontSize="{TemplateBinding FontSize}"/>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="HotkeyButton" TargetType="Button">
-            <Setter Property="Background" Value="#FAFAFA"/>
-            <Setter Property="Foreground" Value="#333333"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0F0F0"/>
-                                <Setter Property="BorderBrush" Value="#0078D4"/>
+                                <Setter TargetName="btnBorder" Property="Background" Value="#0062AD"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="btnBorder" Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -159,812 +145,595 @@
             </Setter>
         </Style>
 
-        <!-- Sidebar Tab Button Style -->
-        <Style x:Key="SidebarTab" TargetType="RadioButton">
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="secBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="secBorder" Property="Background" Value="#F1F5F9"/>
+                                <Setter TargetName="secBorder" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HotkeyButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}"/>
+
+        <!-- Sidebar Tab Button Style -->
+        <Style x:Key="SidebarTab" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Template">
+                <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="border" Background="Transparent" CornerRadius="6" Padding="10,8" Margin="0,1">
+                        <Border x:Name="border" Background="Transparent" CornerRadius="6" Padding="12,10">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="icon" Text="{TemplateBinding Tag}" FontSize="13" Width="20" Foreground="#666666" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="icon" Text="{TemplateBinding Tag}" FontSize="15" Width="26" Foreground="#64748B" VerticalAlignment="Center"/>
                                 <ContentPresenter VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#26007AFF"/>
+                                <Setter TargetName="border" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#BFDBFE"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="1"/>
                                 <Setter TargetName="icon" Property="Foreground" Value="#0078D4"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#0D000000"/>
+                                <Setter TargetName="border" Property="Background" Value="#F1F5F9"/>
                             </Trigger>
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="IsChecked" Value="True"/>
-                                    <Condition Property="IsMouseOver" Value="True"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="border" Property="Background" Value="#33007AFF"/>
-                            </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <!-- Permission Row Style -->
-        <Style x:Key="PermissionRow" TargetType="Border">
-            <Setter Property="Background" Value="#80FFFFFF"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="0,4,0,0"/>
-        </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="230"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar (macOS style) -->
-        <Border Grid.Column="0" Background="#FAFAFA" BorderBrush="#E8E8E8" BorderThickness="0,0,1,0">
-            <StackPanel Margin="10">
-                <RadioButton x:Name="TabGeneral" Style="{StaticResource SidebarTab}" Tag="⚙️" IsChecked="True" GroupName="SettingsTabs" Checked="Tab_Checked">
-                    <TextBlock Text="General" FontSize="13"/>
-                </RadioButton>
-                <RadioButton x:Name="TabPrompts" Style="{StaticResource SidebarTab}" Tag="💬" GroupName="SettingsTabs" Checked="Tab_Checked">
-                    <TextBlock Text="Prompts" FontSize="13"/>
-                </RadioButton>
-                <RadioButton x:Name="TabMacros" Style="{StaticResource SidebarTab}" Tag="✨" GroupName="SettingsTabs" Checked="Tab_Checked">
-                    <TextBlock Text="Macros" FontSize="13"/>
-                </RadioButton>
-                <RadioButton x:Name="TabRunLog" Style="{StaticResource SidebarTab}" Tag="📋" GroupName="SettingsTabs" Checked="Tab_Checked">
-                    <TextBlock Text="Run Log" FontSize="13"/>
-                </RadioButton>
-                <RadioButton x:Name="TabDebug" Style="{StaticResource SidebarTab}" Tag="🐛" GroupName="SettingsTabs" Checked="Tab_Checked">
-                    <TextBlock Text="Debug" FontSize="13"/>
-                </RadioButton>
-            </StackPanel>
-        </Border>
-
-        <!-- Main Content Area - Grid with all tab content, controlled by visibility -->
-        <Grid Grid.Column="1">
-            <!-- GENERAL TAB -->
-            <ScrollViewer x:Name="GeneralTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="24,20" MaxWidth="520">
-
-                    <!-- App Branding Header -->
-                    <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
-                        <Ellipse Width="64" Height="64" HorizontalAlignment="Center">
-                            <Ellipse.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#667EEA" Offset="0"/>
-                                    <GradientStop Color="#764BA2" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <TextBlock Text="Murmur" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                        <TextBlock Text="v1.0.0" FontSize="11" Foreground="#888888" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                        
-                        <!-- GitHub Card -->
-                        <Border Background="#0D000000" CornerRadius="12" Padding="12" Margin="0,12,0,0" BorderBrush="#14000000" BorderThickness="1">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <Border Width="22" Height="22" CornerRadius="11" Background="#24292E" Margin="0,0,8,0">
-                                        <TextBlock Text="⚡" Foreground="White" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <TextBlock Text="VijitPugalia/Murmur" FontSize="11" FontFamily="Consolas" Foreground="#0078D4" VerticalAlignment="Center" Cursor="Hand"/>
-                                    <Border Background="#24FFD700" CornerRadius="10" Padding="8,4" Margin="12,0,0,0">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="⭐" FontSize="10"/>
-                                            <TextBlock Text=" stars" FontSize="10" FontWeight="SemiBold" Foreground="#888888"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#2EFFD700" CornerRadius="10" Padding="10,5" Margin="8,0,0,0" Cursor="Hand">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="☆ Star" FontSize="11" FontWeight="SemiBold"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- 1. App Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="⚡" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="App" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Launch Murmur at login" IsChecked="{Binding StartWithWindows}"/>
-                            <CheckBox Content="Show system tray icon" IsChecked="{Binding ShowTrayIcon}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 2. Updates Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🔄" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Updates" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Automatically check for updates" IsChecked="{Binding AutoCheckUpdates}"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button x:Name="CheckUpdatesButton" Content="Check for Updates Now" Style="{StaticResource HotkeyButton}" Padding="12,6" HorizontalAlignment="Left" Click="CheckUpdatesButton_Click"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 3. API Key Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🔑" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="API Key" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">
-                                Murmur uses the configured transcription model with your selected OpenAI-compatible provider.
-                            </TextBlock>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <PasswordBox x:Name="ApiKeyBox" Style="{StaticResource InputPasswordBox}" PasswordChanged="ApiKeyBox_PasswordChanged"/>
-                                <Button Grid.Column="1" x:Name="SaveApiKeyButton" Content="Save" Style="{StaticResource HotkeyButton}" Margin="8,0,0,0" Padding="16,6" Click="SaveApiKeyButton_Click"/>
-                            </Grid>
-                            <TextBlock Text="{Binding ApiKeyStatusMessage}" Foreground="{Binding ApiKeyStatusColor}" FontSize="11" Margin="2,4,0,0" TextWrapping="Wrap"/>
-                            
-                            <!-- Advanced Provider Settings (Expandable) -->
-                            <Expander Header="Advanced Provider Settings" Margin="0,12,0,0" FontSize="12">
-                                <StackPanel Margin="0,8,0,0">
-                                    <TextBlock Text="API Base URL" Style="{StaticResource FieldLabel}"/>
-                                    <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,4">Change this to use a different OpenAI-compatible API provider.</TextBlock>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBox Text="{Binding ApiBaseUrl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}"/>
-                                        <Button Grid.Column="1" Content="Reset to Default" Style="{StaticResource SmallButton}" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                    </Grid>
-                                    
-                                    <TextBlock Text="Post-Processing Model" Style="{StaticResource FieldLabel}"/>
-                                    <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,4">Used for transcript cleanup and Edit Mode transforms.</TextBlock>
-                                    <TextBox Text="{Binding PostProcessingModel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}"/>
-                                    
-                                    <TextBlock Text="Post-Processing Fallback Model" Style="{StaticResource FieldLabel}"/>
-                                    <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,4">Used as retry model when primary fails.</TextBlock>
-                                    <TextBox Text="{Binding PostProcessingFallbackModel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}"/>
-                                    
-                                    <TextBlock Text="Transcription Model" Style="{StaticResource FieldLabel}"/>
-                                    <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,4">Used for speech-to-text transcription.</TextBlock>
-                                    <TextBox Text="{Binding TranscriptionModel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}"/>
-                                    
-                                    <TextBlock Text="Transcription API URL (Optional)" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox Text="{Binding TranscriptionApiUrl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}"/>
-                                    <TextBlock Style="{StaticResource FieldDescription}">Uses API Base URL when empty.</TextBlock>
-                                </StackPanel>
-                            </Expander>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 4. Output Language Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🌐" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Output Language" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <ComboBox x:Name="OutputLanguageCombo" SelectedIndex="0" Padding="8,6">
-                                <ComboBoxItem Content="Same as spoken"/>
-                                <ComboBoxItem Content="English"/>
-                                <ComboBoxItem Content="Chinese (Simplified)"/>
-                                <ComboBoxItem Content="Chinese (Traditional)"/>
-                                <ComboBoxItem Content="Spanish"/>
-                                <ComboBoxItem Content="French"/>
-                                <ComboBoxItem Content="Japanese"/>
-                                <ComboBoxItem Content="Korean"/>
-                                <ComboBoxItem Content="German"/>
-                                <ComboBoxItem Content="Portuguese"/>
-                            </ComboBox>
-                            <TextBlock Style="{StaticResource FieldDescription}">When set, Murmur translates your speech into the selected language.</TextBlock>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 5. Dictation Shortcuts Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="⌨️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Dictation Shortcuts" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,10">
-                                Select from preset shortcuts or record your own custom keys to activate voice dictation in any application.
-                            </TextBlock>
-
-                            <!-- Live Feedback Notification Banner -->
-                            <Border Background="#E6F4EA" BorderBrush="#34A853" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,12"
-                                    Visibility="{Binding HasHotkeyStatusMessage, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{Binding HotkeyStatusMessage}" FontWeight="SemiBold" Foreground="#137333" FontSize="12"/>
-                            </Border>
-
-                            <!-- Current Shortcuts Grid -->
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <!-- Hold Mode (Hold-to-Talk) -->
-                                <Border Grid.Column="0" Background="#F8F9FA" BorderBrush="#0078D4" BorderThickness="1.5" CornerRadius="8" Padding="14" Margin="0,0,6,0">
-                                    <StackPanel>
-                                        <DockPanel LastChildFill="False" Margin="0,0,0,4">
-                                            <TextBlock Text="Hold-to-Talk" FontWeight="Bold" FontSize="13" Foreground="#1A1A1A" VerticalAlignment="Center"/>
-                                            <Border DockPanel.Dock="Right" Background="#0078D4" CornerRadius="4" Padding="6,2">
-                                                <TextBlock Text="Recommended" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
-                                            </Border>
-                                        </DockPanel>
-                                        <TextBlock Text="Hold keys while speaking; release to paste" FontSize="11" Foreground="#666666" Margin="0,0,0,10" TextWrapping="Wrap"/>
-                                        
-                                        <!-- Active Hotkey Badge Display -->
-                                        <Border Background="#EBF3FC" BorderBrush="#0078D4" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
-                                            <DockPanel>
-                                                <TextBlock Text="Current:" FontSize="11" Foreground="#555555" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <TextBlock Text="{Binding HoldHotkeyDisplay}" FontWeight="Bold" FontSize="14" FontFamily="Consolas, Segoe UI" Foreground="#0078D4" VerticalAlignment="Center"/>
-                                            </DockPanel>
-                                        </Border>
-
-                                        <!-- Select Preset Dropdown -->
-                                        <TextBlock Text="Select Hotkey from List:" FontWeight="SemiBold" FontSize="11" Foreground="#333333" Margin="0,0,0,4"/>
-                                        <ComboBox ItemsSource="{Binding HoldPresets}" SelectedItem="{Binding SelectedHoldPreset}" DisplayMemberPath="Display" Padding="8,6" Margin="0,0,0,10" Cursor="Hand"/>
-
-                                        <!-- Record Key Button -->
-                                        <Button Content="🎙️ Record Shortcut via Keyboard" Command="{Binding RecordHoldHotkeyCommand}" Style="{StaticResource HotkeyButton}" Padding="8,6" Cursor="Hand"/>
-                                        <TextBlock Text="Or press keys directly on your keyboard" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Toggle Mode (Click to start/stop) -->
-                                <Border Grid.Column="1" Background="#F8F9FA" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="8" Padding="14" Margin="6,0,0,0">
-                                    <StackPanel>
-                                        <DockPanel LastChildFill="False" Margin="0,0,0,4">
-                                            <TextBlock Text="Toggle Mode" FontWeight="Bold" FontSize="13" Foreground="#1A1A1A" VerticalAlignment="Center"/>
-                                            <Border DockPanel.Dock="Right" Background="#6B7280" CornerRadius="4" Padding="6,2">
-                                                <TextBlock Text="Click to Start" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
-                                            </Border>
-                                        </DockPanel>
-                                        <TextBlock Text="Press once to start dictation, press again to stop" FontSize="11" Foreground="#666666" Margin="0,0,0,10" TextWrapping="Wrap"/>
-                                        
-                                        <!-- Active Hotkey Badge Display -->
-                                        <Border Background="#F3F4F6" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
-                                            <DockPanel>
-                                                <TextBlock Text="Current:" FontSize="11" Foreground="#555555" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <TextBlock Text="{Binding ToggleHotkeyDisplay}" FontWeight="Bold" FontSize="14" FontFamily="Consolas, Segoe UI" Foreground="#374151" VerticalAlignment="Center"/>
-                                            </DockPanel>
-                                        </Border>
-
-                                        <!-- Select Preset Dropdown -->
-                                        <TextBlock Text="Select Hotkey from List:" FontWeight="SemiBold" FontSize="11" Foreground="#333333" Margin="0,0,0,4"/>
-                                        <ComboBox ItemsSource="{Binding TogglePresets}" SelectedItem="{Binding SelectedTogglePreset}" DisplayMemberPath="Display" Padding="8,6" Margin="0,0,0,10" Cursor="Hand"/>
-
-                                        <!-- Record Key Button -->
-                                        <Button Content="🎙️ Record Shortcut via Keyboard" Command="{Binding RecordToggleHotkeyCommand}" Style="{StaticResource HotkeyButton}" Padding="8,6" Cursor="Hand"/>
-                                        <TextBlock Text="Or press keys directly on your keyboard" FontSize="10" Foreground="#888888" HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-
-                            <!-- Quick Presets -->
-                            <TextBlock Text="Quick Presets (1-Click Selection):" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <WrapPanel Margin="0,0,0,14">
-                                <Button Content="⚡ Ctrl + Windows (Default)" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Win" Margin="0,0,6,6" Padding="10,5" Background="#EBF3FC" BorderBrush="#0078D4" BorderThickness="1" Foreground="#0078D4" FontWeight="SemiBold" Cursor="Hand"/>
-                                <Button Content="Ctrl + Shift + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Shift+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
-                                <Button Content="Alt + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Alt+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
-                                <Button Content="Ctrl + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
-                                <Button Content="Ctrl + Alt + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Alt+Space" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
-                                <Button Content="Win + H" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Win+H" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
-                                <Button Content="F8" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="F8" Margin="0,0,6,6" Padding="10,5" Background="#FAFAFA" BorderBrush="#DDDDDD" BorderThickness="1" Cursor="Hand"/>
-                            </WrapPanel>
-
-                            <!-- Custom Hotkey Builder -->
-                            <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
-                                <StackPanel>
-                                    <TextBlock Text="🛠️ Custom Shortcut Builder (Build Any Combination)" FontWeight="SemiBold" FontSize="12" Foreground="#111827" Margin="0,0,0,4"/>
-                                    <TextBlock Text="Choose which mode to assign, check your modifiers, and pick any key from the dropdown:" Style="{StaticResource FieldDescription}" Margin="0,0,0,10"/>
-                                    
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Assign to:" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <RadioButton Content="Hold-to-Talk" GroupName="CustomTarget" IsChecked="{Binding CustomTargetIsHold}" Margin="0,0,16,0" VerticalAlignment="Center"/>
-                                        <RadioButton Content="Toggle Mode" GroupName="CustomTarget" IsChecked="{Binding CustomTargetIsToggle}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <!-- Modifiers Checkboxes -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Modifiers:" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <CheckBox Content="Ctrl" IsChecked="{Binding CustomCtrl}" Margin="0,0,14,0"/>
-                                        <CheckBox Content="Windows" IsChecked="{Binding CustomWin}" Margin="0,0,14,0"/>
-                                        <CheckBox Content="Alt" IsChecked="{Binding CustomAlt}" Margin="0,0,14,0"/>
-                                        <CheckBox Content="Shift" IsChecked="{Binding CustomShift}"/>
-                                    </StackPanel>
-
-                                    <!-- Key Selection Dropdown -->
-                                    <Grid Margin="0,0,0,12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Key:" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedCustomKey}" DisplayMemberPath="Display" Padding="8,5" MaxDropDownHeight="240"/>
-                                    </Grid>
-
-                                    <!-- Live Preview & Apply Button -->
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="Result: " FontWeight="SemiBold" FontSize="12" Foreground="#555555" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding CustomHotkeyPreview}" FontWeight="Bold" FontSize="13" FontFamily="Consolas" Foreground="#0078D4" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Button Grid.Column="1" Content="✓ Apply Custom Hotkey" Command="{Binding ApplyCustomHotkeyCommand}" Background="#0078D4" Foreground="White" Padding="14,6" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,8,0">
-                                            <Button.Resources>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="CornerRadius" Value="5"/>
-                                                </Style>
-                                            </Button.Resources>
-                                        </Button>
-                                        <Button Grid.Column="2" Content="Reset Default" Command="{Binding ResetHotkeysCommand}" Style="{StaticResource SmallButton}" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-                            
-                            <Separator Margin="0,4,0,12"/>
-                            
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Shortcut Start Delay" Style="{StaticResource FieldLabel}" Margin="0" FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="DelayValueText" Grid.Column="1" Text="0 ms" FontSize="11" Foreground="#888888" FontFamily="Consolas" VerticalAlignment="Center"/>
-                                </Grid>
-                                <Slider x:Name="StartDelaySlider" Minimum="0" Maximum="500" Value="{Binding ShortcutStartDelay}" TickFrequency="25" IsSnapToTickEnabled="True" Margin="0,4,0,0" ValueChanged="StartDelaySlider_ValueChanged"/>
-                                <TextBlock Style="{StaticResource FieldDescription}">Applies before recording starts for both hold and tap shortcuts.</TextBlock>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 6. Audio During Dictation Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🔇" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Audio During Dictation" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Mute audio when dictation starts" IsChecked="{Binding MuteAudioDuringDictation}"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">Murmur restores the audio state when dictation ends.</TextBlock>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 7. Recording Overlay Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="⬜" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Recording Overlay" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <RadioButton GroupName="OverlayStyle" IsChecked="{Binding UseCompactOverlay}" Margin="0,4">
-                                <StackPanel>
-                                    <TextBlock Text="Minimalist overlay" FontSize="13"/>
-                                    <TextBlock Text="Small indicator that stays out of the way." Style="{StaticResource FieldDescription}" Margin="0"/>
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton GroupName="OverlayStyle" Margin="0,8,0,4">
-                                <StackPanel>
-                                    <TextBlock Text="Full overlay" FontSize="13"/>
-                                    <TextBlock Text="Larger and more visible recording indicator." Style="{StaticResource FieldDescription}" Margin="0"/>
-                                </StackPanel>
-                            </RadioButton>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 8. Edit Mode Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="✏️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Edit Mode" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Enable Edit Mode" IsChecked="{Binding EnableEditMode}"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">Transform highlighted text with a spoken instruction instead of dictating over it.</TextBlock>
-                            <TextBlock Text="Invocation Style" Style="{StaticResource FieldLabel}"/>
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton Content="Automatic" GroupName="EditModeStyle" IsChecked="{Binding EditModeAutomatic}" Margin="0,0,16,0"/>
-                                <RadioButton Content="Manual" GroupName="EditModeStyle"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 9. Cleanup Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="✨" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Cleanup" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Preserve exact wording" IsChecked="{Binding PreserveExactWording}"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">When on, Murmur skips the LLM cleanup step and pastes the transcript verbatim — filler words, informal phrasing, and explicit language are all preserved.</TextBlock>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 10. Clipboard Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="📋" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Clipboard" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Preserve clipboard after paste" IsChecked="{Binding PreserveClipboard}"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">Murmur will temporarily place the transcript on your clipboard to paste it, then restore whatever was there before.</TextBlock>
-                            <Separator Margin="0,12,0,8"/>
-                            <CheckBox Content="Keep dictations in clipboard history" IsChecked="{Binding KeepInClipboardHistory}"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">When on, your clipboard manager records each dictation so you can find it in your recent history.</TextBlock>
-                            <Separator Margin="0,12,0,8"/>
-                            <CheckBox Content='Say "press enter" to submit after paste' IsChecked="{Binding PressEnterAfterPaste}"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">When the transcription ends with "press enter", Murmur removes those words, pastes the transcript, then presses Return.</TextBlock>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 11. Microphone Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🎤" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Microphone" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Select which microphone to use for recording.</TextBlock>
-                            <ItemsControl x:Name="MicrophoneList" ItemsSource="{Binding AvailableDevices}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource PermissionRow}" Cursor="Hand" MouseLeftButtonDown="MicrophoneItem_Click">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock x:Name="MicCheckmark" Text="✓" Foreground="#0078D4" FontWeight="Bold" Width="20" Visibility="Collapsed"/>
-                                                <TextBlock x:Name="MicCircle" Text="○" Foreground="#888888" Width="20"/>
-                                                <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 12. Sound Volume Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🔊" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Sound Volume" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox Content="Play alert sounds" IsChecked="{Binding PlayAlertSounds}"/>
-                            <Grid Margin="0,8,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="40"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="🔈" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
-                                <Slider x:Name="VolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding SoundVolume}" Margin="8,0" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
-                                <TextBlock Text="🔊" Grid.Column="2" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="VolumeValueText" Grid.Column="3" Text="100%" FontSize="11" Foreground="#888888" TextAlignment="Right" VerticalAlignment="Center"/>
-                            </Grid>
-                            <Button x:Name="PreviewSoundButton" Content="Preview" Style="{StaticResource HotkeyButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Padding="12,6" Click="PreviewSoundButton_Click"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 13. Custom Vocabulary Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="📖" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Custom Vocabulary" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Words and phrases to preserve during post-processing.</TextBlock>
-                            <TextBox Text="{Binding CustomVocabulary, UpdateSourceTrigger=PropertyChanged}" 
-                                     Style="{StaticResource InputTextBox}"
-                                     AcceptsReturn="True" TextWrapping="Wrap" 
-                                     Height="80" VerticalScrollBarVisibility="Auto"
-                                     FontFamily="Consolas"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">Separate entries with commas, new lines, or semicolons.</TextBlock>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 14. Permissions Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🛡️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Permissions" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <Border Style="{StaticResource PermissionRow}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="🎤" FontSize="14" Foreground="#0078D4" Width="24"/>
-                                    <TextBlock Grid.Column="1" Text="Microphone" FontSize="13" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                        <TextBlock Text="✓" Foreground="#107C10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Granted" Foreground="#107C10" FontSize="11" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 15. Build Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="ℹ️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Build" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Build number" FontSize="11" FontWeight="SemiBold"/>
-                                        <TextBlock Text="  1.0.0" FontSize="11" Foreground="#888888" FontFamily="Consolas"/>
-                                    </StackPanel>
-                                    <TextBlock x:Name="BuildInfoText" Text="Murmur 1.0.0 (1.0.0)&#x0a;Windows" FontSize="11" Foreground="#888888" FontFamily="Consolas" Margin="0,4,0,0"/>
-                                </StackPanel>
-                                <Button x:Name="CopyBuildInfoButton" Grid.Column="1" Content="Copy" Style="{StaticResource HotkeyButton}" Padding="12,6" VerticalAlignment="Top" Click="CopyBuildInfoButton_Click"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Height="20"/>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- PROMPTS TAB -->
-            <ScrollViewer x:Name="PromptsTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                <StackPanel Margin="24,20" MaxWidth="520">
-                    <!-- System Prompt Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="💬" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="System Prompt" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Customize the system prompt used for transcript cleanup.</TextBlock>
-                            <TextBox x:Name="SystemPromptBox" 
-                                     Style="{StaticResource InputTextBox}"
-                                     AcceptsReturn="True" TextWrapping="Wrap" 
-                                     Height="150" VerticalScrollBarVisibility="Auto"
-                                     FontFamily="Consolas" FontSize="11"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Content="Reset to Default" Style="{StaticResource SmallButton}" Margin="0,0,16,0"/>
-                                <Button Content="Show Default" Style="{StaticResource SmallButton}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Instruction Guard Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🛡️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Instruction Guard" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <CheckBox x:Name="InstructionGuardCheckBox" Content="Prevent dictated prompts from being executed"/>
-                            <TextBlock Style="{StaticResource FieldDescription}">When enabled, instructions within your dictation won't be followed by the cleanup model.</TextBlock>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Context Prompt Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="👁️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Context Prompt" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Customize how context is provided to the model.</TextBlock>
-                            <TextBox x:Name="ContextPromptBox" 
-                                     Style="{StaticResource InputTextBox}"
-                                     AcceptsReturn="True" TextWrapping="Wrap" 
-                                     Height="150" VerticalScrollBarVisibility="Auto"
-                                     FontFamily="Consolas" FontSize="11"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Content="Reset to Default" Style="{StaticResource SmallButton}" Margin="0,0,16,0"/>
-                                <Button Content="Show Default" Style="{StaticResource SmallButton}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Height="20"/>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- MACROS TAB -->
-            <ScrollViewer x:Name="MacrosTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                <StackPanel Margin="24,20" MaxWidth="520">
-                    <!-- Voice Macros Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🎙️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Voice Macros" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Style="{StaticResource FieldDescription}">Bypass post-processing and immediately paste your predefined text.</TextBlock>
-                                <Button x:Name="AddMacroButton" Grid.Column="1" Content="Add Macro" Style="{StaticResource HotkeyButton}" Padding="12,6" Click="AddMacroButton_Click"/>
-                            </Grid>
-                            
-                            <!-- Empty state -->
-                            <Border x:Name="MacrosEmptyState" Margin="0,24,0,24">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="🎙️" FontSize="30" Foreground="#CCCCCC" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="No Voice Macros Yet" FontSize="14" FontWeight="SemiBold" Foreground="#888888" HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="Click 'Add Macro' to define your first voice macro." FontSize="11" Foreground="#AAAAAA" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
-                            
-                            <!-- Macro list (hidden when empty) -->
-                            <ItemsControl x:Name="MacrosList" Visibility="Collapsed">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#F8F8F8" CornerRadius="6" Padding="12" Margin="0,4,0,0">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Command}" FontSize="13" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding Payload}" FontSize="11" Foreground="#888888" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                                <Button Grid.Column="1" Content="Edit" Style="{StaticResource SmallButton}" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                                <Button Grid.Column="2" Content="Delete" Style="{StaticResource SmallButton}" Foreground="#D13438" VerticalAlignment="Center"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Height="20"/>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- RUN LOG TAB -->
-            <Grid x:Name="RunLogTab" Visibility="Collapsed">
+        <!-- Left Sidebar Navigation -->
+        <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                
-                <!-- Header -->
-                <StackPanel Grid.Row="0" Margin="24,20,24,12">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="Run Log" FontSize="16" FontWeight="SemiBold"/>
-                            <TextBlock Text="Stored locally. Only the 50 most recent runs are kept." FontSize="11" Foreground="#888888" Margin="0,4,0,0"/>
-                        </StackPanel>
-                        <Button x:Name="ClearHistoryButton" Grid.Column="1" Content="Clear History" Style="{StaticResource HotkeyButton}" Padding="12,6" VerticalAlignment="Top" Click="ClearHistoryButton_Click"/>
-                    </Grid>
-                </StackPanel>
-                
-                <Separator Grid.Row="1" Margin="0,0,0,0"/>
-                
-                <!-- Run log content -->
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="24,16">
-                        <!-- Empty state -->
-                        <Border x:Name="RunLogEmptyState" Margin="0,40,0,0">
-                            <TextBlock Text="No runs yet. Use dictation to populate history." FontSize="13" Foreground="#888888" HorizontalAlignment="Center"/>
+
+                <!-- Header / App Brand -->
+                <Border Grid.Row="0" Padding="18,18,18,14" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="34" Height="34" CornerRadius="8" Background="#0078D4" Margin="0,0,10,0">
+                            <TextBlock Text="🎙️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        
-                        <!-- Run log entries (hidden when empty) -->
-                        <ItemsControl x:Name="RunLogList" Visibility="Collapsed">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource SettingsCard}">
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Murmur" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
+                                <Border Background="#E2E8F0" CornerRadius="4" Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="v1.0" FontSize="10" FontWeight="SemiBold" Foreground="#475569"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="Voice Dictation" FontSize="11" Foreground="#64748B"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Navigation Tabs -->
+                <StackPanel Grid.Row="1" Margin="10,12">
+                    <RadioButton x:Name="TabGeneral" Style="{StaticResource SidebarTab}" Tag="⚡" IsChecked="True" GroupName="SettingsTabs" Checked="Tab_Checked">
+                        <TextBlock Text="Shortcuts &amp; General" FontSize="13" FontWeight="Medium"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabAudio" Style="{StaticResource SidebarTab}" Tag="🎙️" GroupName="SettingsTabs" Checked="Tab_Checked">
+                        <TextBlock Text="Audio &amp; Recording" FontSize="13" FontWeight="Medium"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabAI" Style="{StaticResource SidebarTab}" Tag="🤖" GroupName="SettingsTabs" Checked="Tab_Checked">
+                        <TextBlock Text="AI &amp; API Models" FontSize="13" FontWeight="Medium"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabMacros" Style="{StaticResource SidebarTab}" Tag="✨" GroupName="SettingsTabs" Checked="Tab_Checked">
+                        <TextBlock Text="Macros &amp; Vocab" FontSize="13" FontWeight="Medium"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabAdvanced" Style="{StaticResource SidebarTab}" Tag="🛠️" GroupName="SettingsTabs" Checked="Tab_Checked">
+                        <TextBlock Text="Advanced &amp; Logs" FontSize="13" FontWeight="Medium"/>
+                    </RadioButton>
+                </StackPanel>
+
+                <!-- Active Shortcut Quick Pill at Sidebar Bottom -->
+                <Border Grid.Row="2" Background="#EFF6FF" BorderBrush="#DBEAFE" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="12,12">
+                    <StackPanel>
+                        <TextBlock Text="Active Shortcut:" FontSize="10" FontWeight="SemiBold" Foreground="#3B82F6" Margin="0,0,0,2"/>
+                        <TextBlock Text="{Binding UnifiedHotkeyDisplay}" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="13" Foreground="#1D4ED8"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Right Content & Action Footer -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Active Tab Views -->
+            <Grid Grid.Row="0">
+
+                <!-- TAB 1: SHORTCUTS & GENERAL -->
+                <ScrollViewer x:Name="GeneralTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="28,24" MaxWidth="580">
+                        <TextBlock Text="Shortcuts &amp; General" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                        <TextBlock Text="Configure how you trigger voice dictation across Windows applications." FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+
+                        <!-- Primary Unified Dictation Shortcut Card -->
+                        <Border Background="#F0F7FF" BorderBrush="#0078D4" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False" Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="⚡ Unified Dictation Shortcut" FontWeight="Bold" FontSize="14" Foreground="#0078D4"/>
+                                        <Border Background="#0078D4" CornerRadius="4" Padding="6,2" Margin="10,0,0,0">
+                                            <TextBlock Text="Recommended" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                </DockPanel>
+                                <TextBlock Text="Hold to speak &amp; release to paste • Double-tap to record hands-free without holding" FontSize="12" Foreground="#475569" Margin="0,0,0,12"/>
+
+                                <!-- Interactive Click-to-Record Active Badge -->
+                                <Border Background="White" BorderBrush="#0078D4" BorderThickness="1.5" CornerRadius="6" Padding="12,10" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Active Shortcut:" FontWeight="SemiBold" FontSize="12" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding UnifiedHotkeyDisplay}" FontWeight="Bold" FontSize="16" FontFamily="Consolas, Segoe UI" Foreground="#0078D4" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="2" Content="🎙️ Click to Record via Keyboard" Command="{Binding RecordUnifiedHotkeyCommand}" Style="{StaticResource HotkeyButton}" Padding="14,6" Cursor="Hand"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 1-Click Popular Presets -->
+                                <TextBlock Text="Quick Presets (Click to apply):" FontWeight="SemiBold" FontSize="11" Foreground="#475569" Margin="0,0,0,6"/>
+                                <WrapPanel>
+                                    <Button Content="⚡ Ctrl + Windows (Default)" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Win" Margin="0,0,6,6" Padding="10,5" Background="#EBF3FC" BorderBrush="#0078D4" BorderThickness="1" Foreground="#0078D4" FontWeight="SemiBold" Cursor="Hand"/>
+                                    <Button Content="Alt + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Alt+Space" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" FontWeight="SemiBold" Cursor="Hand"/>
+                                    <Button Content="Ctrl + Shift + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Shift+Space" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
+                                    <Button Content="Ctrl + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Space" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
+                                    <Button Content="Win + H" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Win+H" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
+                                    <Button Content="F8" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="F8" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Advanced Option: Separate Shortcuts for Hold and Toggle Modes -->
+                        <Expander Header="⚙️ Advanced: Separate Shortcuts for Hold and Toggle Modes" IsExpanded="{Binding UseSeparateHotkeys}" Margin="0,0,0,16" FontWeight="SemiBold" Foreground="#334155">
+                            <StackPanel Margin="0,8,0,0">
+                                <CheckBox Content="Enable separate Hold and Toggle hotkeys" IsChecked="{Binding UseSeparateHotkeys}" FontWeight="Normal" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,6,0">
                                         <StackPanel>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:MMM dd, yyyy  hh:mm tt}'}" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding AppName, StringFormat='•  {0}'}" FontSize="11" Foreground="#444448" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                    <Button Content="Copy" Style="{StaticResource SmallButton}" Click="RunLogCopy_Click" Tag="{Binding}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <TextBlock Text="{Binding CleanTranscript}" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock Text="Hold-to-Talk" FontWeight="Bold" FontSize="12" Foreground="#0F172A" Margin="0,0,0,6"/>
+                                            <TextBlock Text="{Binding HoldHotkeyDisplay}" FontWeight="Bold" FontFamily="Consolas" Foreground="#0078D4" Margin="0,0,0,8"/>
+                                            <Button Content="Record Key" Command="{Binding RecordHoldHotkeyCommand}" Style="{StaticResource SecondaryButton}" Padding="8,5"/>
                                         </StackPanel>
                                     </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                    <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12" Margin="6,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Toggle Mode" FontWeight="Bold" FontSize="12" Foreground="#0F172A" Margin="0,0,0,6"/>
+                                            <TextBlock Text="{Binding ToggleHotkeyDisplay}" FontWeight="Bold" FontFamily="Consolas" Foreground="#334155" Margin="0,0,0,8"/>
+                                            <Button Content="Record Key" Command="{Binding RecordToggleHotkeyCommand}" Style="{StaticResource SecondaryButton}" Padding="8,5"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Dictation Timing Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="⏱️" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Dictation Start Delay" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,10">A brief delay before recording starts allows modifier keys to settle.</TextBlock>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Delay Duration:" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                    <TextBlock x:Name="DelayValueText" Grid.Column="1" Text="0 ms" FontSize="12" FontWeight="Bold" Foreground="#0078D4" FontFamily="Consolas" VerticalAlignment="Center"/>
+                                </Grid>
+                                <Slider x:Name="StartDelaySlider" Minimum="0" Maximum="500" Value="{Binding ShortcutStartDelay}" TickFrequency="25" IsSnapToTickEnabled="True" Margin="0,4,0,0" ValueChanged="StartDelaySlider_ValueChanged"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Application Behavior Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🚀" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Application Behavior" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <CheckBox Content="Launch Murmur automatically when Windows starts" IsChecked="{Binding StartWithWindows}"/>
+                                <CheckBox Content="Start minimized to system tray in background" IsChecked="{Binding StartMinimized}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Updates Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🔄" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Software Updates" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <CheckBox Content="Automatically check for updates on startup" IsChecked="{Binding AutoCheckUpdates}"/>
+                                <Button x:Name="CheckUpdatesButton" Content="Check for Updates Now" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,10,0,0" Click="CheckUpdatesButton_Click"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
+
+                <!-- TAB 2: AUDIO & RECORDING -->
+                <ScrollViewer x:Name="AudioTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+                    <StackPanel Margin="28,24" MaxWidth="580">
+                        <TextBlock Text="Audio &amp; Recording" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                        <TextBlock Text="Configure microphone input, volume levels, and floating indicator feedback." FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+
+                        <!-- Microphone Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🎙️" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Microphone Input Device" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,10">Select your preferred audio capture device:</TextBlock>
+                                
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ItemsControl x:Name="MicrophoneList" ItemsSource="{Binding AvailableDevices}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,6" Cursor="Hand" MouseLeftButtonDown="MicrophoneItem_Click">
+                                                    <DockPanel>
+                                                        <TextBlock x:Name="MicCheckmark" Text="✓ " Foreground="#0078D4" FontWeight="Bold" Visibility="Collapsed"/>
+                                                        <TextBlock x:Name="MicCircle" Text="○ " Foreground="#94A3B8"/>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="13" Foreground="#0F172A"/>
+                                                    </DockPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                                
+                                <Button Content="🔄 Refresh Audio Devices" Command="{Binding RefreshDevicesCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Sound Volume & Audio Ducking Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🔊" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Sound Effects &amp; Feedback" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <CheckBox Content="Play sound cues when dictation starts and stops" IsChecked="{Binding PlayAlertSounds}"/>
+                                
+                                <Grid Margin="0,10,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Volume:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <Slider x:Name="VolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding SoundVolume}" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
+                                    <TextBlock x:Name="VolumeValueText" Grid.Column="2" Text="100%" FontSize="12" FontWeight="Bold" Foreground="#0078D4" FontFamily="Consolas" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,12">
+                                    <Button x:Name="PreviewSoundButton" Content="🔊 Test Sound Cue" Style="{StaticResource SecondaryButton}" Click="PreviewSoundButton_Click"/>
+                                </StackPanel>
+
+                                <Separator Margin="0,4,0,12" Background="#E2E8F0"/>
+                                <CheckBox Content="Mute other system audio during dictation (Audio Ducking)" IsChecked="{Binding MuteOtherAudio}"/>
+                                <TextBlock Style="{StaticResource FieldDescription}">Silences music, YouTube, and podcasts while you speak so Whisper receives clean voice audio.</TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Floating Recording Overlay HUD Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="💬" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Floating Recording HUD" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <CheckBox Content="Show floating indicator overlay during recording" IsChecked="{Binding ShowRecordingIndicator}"/>
+                                <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,10">A non-activating floating pill appears on screen showing live waveform and recording status.</TextBlock>
+
+                                <Button x:Name="DebugOverlayButton" Content="Preview Overlay Pill" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="DebugOverlayButton_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 3: AI & API MODELS -->
+                <ScrollViewer x:Name="AITab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+                    <StackPanel Margin="28,24" MaxWidth="580">
+                        <TextBlock Text="AI &amp; API Models" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                        <TextBlock Text="Configure cloud or local inference endpoints, API keys, and speech models." FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+
+                        <!-- API Credentials & Endpoint Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🔑" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="API Endpoint &amp; Credentials" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Provider Base URL:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding ApiBaseUrl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}" Margin="0,0,0,10"/>
+
+                                <TextBlock Text="API Key:" Style="{StaticResource FieldLabel}"/>
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <PasswordBox x:Name="ApiKeyBox" Style="{StaticResource InputPasswordBox}" PasswordChanged="ApiKeyBox_PasswordChanged"/>
+                                    <Button Grid.Column="1" x:Name="SaveApiKeyButton" Content="Save Key" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="SaveApiKeyButton_Click"/>
+                                </Grid>
+
+                                <!-- Prominent Test Connection Button -->
+                                <DockPanel LastChildFill="False">
+                                    <Button Content="⚡ Test Connection &amp; Validate API Key" Command="{Binding ValidateApiKeyCommand}" Style="{StaticResource PrimaryButton}"/>
+                                </DockPanel>
+
+                                <!-- Live Validation Status Banner -->
+                                <Border Background="#F1F5F9" CornerRadius="6" Padding="12,8" Margin="0,12,0,0" Visibility="{Binding HasApiKeyValidationStatus, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding ValidationStatusMessage}" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- AI Models Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🧠" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Speech &amp; Polish Models" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Transcription Model (Whisper):" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding TranscriptionModel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Default: whisper-large-v3" FontSize="11" Foreground="#64748B" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Post-Processing Model (Polishing &amp; Formatting):" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding PostProcessingModel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Default: openai/gpt-oss-20b or llama-3.3-70b-versatile" FontSize="11" Foreground="#64748B" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Output Language:" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox x:Name="OutputLanguageCombo" SelectedIndex="0" Padding="10,8" Margin="0,0,0,4">
+                                    <ComboBoxItem Content="Auto-detect (Recommended)"/>
+                                    <ComboBoxItem Content="English"/>
+                                    <ComboBoxItem Content="Spanish"/>
+                                    <ComboBoxItem Content="French"/>
+                                    <ComboBoxItem Content="German"/>
+                                    <ComboBoxItem Content="Japanese"/>
+                                    <ComboBoxItem Content="Chinese"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- System Prompts & Context Awareness Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="📝" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="System Prompts &amp; Safety" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Whisper System Prompt (Vocabulary Guidance):" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="SystemPromptBox" Style="{StaticResource InputTextBox}" Height="70" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,12"/>
+
+                                <CheckBox x:Name="InstructionGuardCheckBox" Content="Instruction Guard: Prevent dictated text from executing commands" Margin="0,0,0,8"/>
+                                <CheckBox Content="Context Awareness: Include foreground application title in prompt" IsChecked="{Binding IncludeActiveWindowContext}" Margin="0,0,0,8"/>
+
+                                <TextBlock Text="Context Prompt Template:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="ContextPromptBox" Style="{StaticResource InputTextBox}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 4: MACROS & VOCABULARY -->
+                <ScrollViewer x:Name="MacrosTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+                    <StackPanel Margin="28,24" MaxWidth="580">
+                        <TextBlock Text="Macros &amp; Vocabulary" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                        <TextBlock Text="Teach Murmur proprietary terms, brand names, and voice expansion snippets." FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+
+                        <!-- Custom Vocabulary Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="📖" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Custom Vocabulary Dictionary" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Enter specialized words, acronyms, medical/legal terminology, or people's names separated by commas:</TextBlock>
+                                <TextBox Text="{Binding CustomVocabulary, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource InputTextBox}" Height="80" TextWrapping="Wrap" AcceptsReturn="True"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Voice Macros Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="✨" Style="{StaticResource CardIcon}"/>
+                                        <TextBlock Text="Voice Macros &amp; Snippets" Style="{StaticResource CardTitle}"/>
+                                    </StackPanel>
+                                    <Button DockPanel.Dock="Right" x:Name="AddMacroButton" Content="+ Add Voice Macro" Style="{StaticResource PrimaryButton}" Padding="12,6" Click="AddMacroButton_Click"/>
+                                </DockPanel>
+
+                                <Border x:Name="MacrosEmptyState" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,8,0,8">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="✨" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                        <TextBlock Text="No Voice Macros Configured" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Click '+ Add Voice Macro' to define trigger phrases that expand into canned text." FontSize="11" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <ItemsControl x:Name="MacrosList" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 5: ADVANCED & LOGS -->
+                <ScrollViewer x:Name="AdvancedTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+                    <StackPanel Margin="28,24" MaxWidth="580">
+                        <TextBlock Text="Advanced &amp; Logs" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                        <TextBlock Text="Manage private clipboard history, temporary audio files, and inspection logs." FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+
+                        <!-- Private Clipboard & Formatting Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🔒" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Clipboard Privacy &amp; Rich Formatting" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <CheckBox Content="Exclude dictations from Windows clipboard history (Win + V) and cloud sync" IsChecked="{Binding KeepInClipboardHistory, Converter={StaticResource InverseBool}}"/>
+                                <TextBlock Style="{StaticResource FieldDescription}" Margin="24,0,0,8">Prevents spoken text, passwords, or patient notes from appearing in public Windows clipboard history.</TextBlock>
+
+                                <CheckBox Content="Preserve existing clipboard contents after pasting" IsChecked="{Binding PreserveClipboard}"/>
+                                <CheckBox Content="Automatically paste transcript into active window upon completion" IsChecked="{Binding AutoPaste, FallbackValue=True}"/>
+                                <CheckBox Content="Press Enter automatically after pasting transcript" IsChecked="{Binding PressEnterAfterPaste}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Storage & Cleanup Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🗑️" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Storage &amp; Audio Cleanup" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                                <CheckBox Content="Automatically delete temporary WAV recording files after transcription" IsChecked="{Binding AutoDeleteRecordings, FallbackValue=True}"/>
+                                <TextBlock Style="{StaticResource FieldDescription}" Margin="24,0,0,8">Saves disk space and ensures zero voice data is retained locally.</TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Embedded Dictation Run Log Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="📋" Style="{StaticResource CardIcon}"/>
+                                        <TextBlock Text="Recent Dictations (Run Log)" Style="{StaticResource CardTitle}"/>
+                                    </StackPanel>
+                                    <Button DockPanel.Dock="Right" x:Name="ClearHistoryButton" Content="Clear Run Log" Style="{StaticResource SecondaryButton}" Padding="10,5" Click="ClearHistoryButton_Click"/>
+                                </DockPanel>
+
+                                <Border x:Name="RunLogEmptyState" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,6,0,6">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📝" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                        <TextBlock Text="No Recent Dictations" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Dictate text anywhere and your transcripts will be logged here." FontSize="11" Foreground="#64748B" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <ItemsControl x:Name="RunLogList" Visibility="Collapsed">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:g}'}" FontSize="11" Foreground="#64748B"/>
+                                                        <TextBlock Text="{Binding CleanTranscript}" FontSize="13" Foreground="#0F172A" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Content="Copy" Tag="{Binding}" Style="{StaticResource SecondaryButton}" Padding="8,4" VerticalAlignment="Center" Margin="10,0,0,0" Click="RunLogCopy_Click"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Diagnostics, Debug & Reset Card -->
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource CardHeader}">
+                                    <TextBlock Text="🛠️" Style="{StaticResource CardIcon}"/>
+                                    <TextBlock Text="Diagnostics &amp; Debugging" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="BuildInfoText" Text="Murmur 1.0.0 (Windows x64)" FontSize="12" Foreground="#64748B" FontFamily="Consolas, Segoe UI" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" x:Name="CopyBuildInfoButton" Content="Copy Info" Style="{StaticResource SecondaryButton}" Padding="10,5" Click="CopyBuildInfoButton_Click"/>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,12">
+                                    <Button x:Name="OpenDebugLogButton" Content="📂 Open Log File" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="OpenDebugLogButton_Click"/>
+                                    <Button x:Name="ClearDebugLogButton" Content="🗑️ Clear Debug Log" Style="{StaticResource SecondaryButton}" Click="ClearDebugLogButton_Click"/>
+                                </StackPanel>
+
+                                <Separator Margin="0,4,0,12" Background="#E2E8F0"/>
+                                <Button Content="Reset All Settings to Factory Defaults" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButton}" Foreground="#DC2626" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
             </Grid>
 
-            <!-- DEBUG TAB -->
-            <ScrollViewer x:Name="DebugTab" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                <StackPanel Margin="24,20" MaxWidth="520">
-                    <TextBlock Text="Debug" FontSize="24" FontWeight="Bold" Margin="0,0,0,16"/>
-                    
-                    <!-- Overlay Debug Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="🔧" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Overlay" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Show the recording overlay with simulated audio levels.</TextBlock>
-                            <Button x:Name="DebugOverlayButton" Content="Debug Overlay" Style="{StaticResource HotkeyButton}" HorizontalAlignment="Left" Padding="12,6" Click="DebugOverlayButton_Click"/>
-                        </StackPanel>
-                    </Border>
+            <!-- Sticky Bottom Action Bar -->
+            <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="24,12">
+                <DockPanel LastChildFill="False">
+                    <!-- Status / Unsaved Changes Indicator -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="● " FontSize="12" Foreground="#D97706" Visibility="{Binding HasUnsavedChanges, Converter={StaticResource BoolToVisibility}}"/>
+                        <TextBlock Text="Unsaved changes" FontSize="12" FontWeight="SemiBold" Foreground="#D97706" VerticalAlignment="Center" Visibility="{Binding HasUnsavedChanges, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
 
-                    <!-- Update Overlay Debug Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="⬇️" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Update Overlay" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">Display the update available overlay after dictation finishes.</TextBlock>
-                            <CheckBox Content="Show after dictation"/>
-                            <Button x:Name="ShowUpdateOverlayButton" Content="Show Update Overlay Now" Style="{StaticResource HotkeyButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Padding="12,6" Click="ShowUpdateOverlayButton_Click"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Debug Log Card -->
-                    <Border Style="{StaticResource SettingsCard}">
-                        <StackPanel>
-                            <StackPanel Style="{StaticResource CardHeader}">
-                                <TextBlock Text="📄" Style="{StaticResource CardIcon}"/>
-                                <TextBlock Text="Debug Log" Style="{StaticResource CardTitle}"/>
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource FieldDescription}" Margin="0,0,0,8">View and manage the debug log file.</TextBlock>
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="OpenDebugLogButton" Content="Open Log File" Style="{StaticResource HotkeyButton}" Padding="12,6" Margin="0,0,8,0" Click="OpenDebugLogButton_Click"/>
-                                <Button x:Name="ClearDebugLogButton" Content="Clear Log" Style="{StaticResource HotkeyButton}" Padding="12,6" Click="ClearDebugLogButton_Click"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Height="20"/>
-                </StackPanel>
-            </ScrollViewer>
+                    <!-- Primary & Secondary Action Buttons -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
+                        <Button Content="Close" Click="CloseButton_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
+                        <Button Content="✓ Save &amp; Apply" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButton}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>

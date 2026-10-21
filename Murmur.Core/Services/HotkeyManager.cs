@@ -6,8 +6,8 @@ namespace Murmur.Core.Services;
 
 /// <summary>
 /// Manages global system hotkeys using Win32 RegisterHotKey/UnregisterHotKey APIs.
-/// Supports both Hold mode (with key release detection via low-level keyboard hook)
-/// and Toggle mode hotkeys.
+/// Supports Hold mode (with key release detection via low-level keyboard hook),
+/// Toggle mode hotkeys, and Unified hotkey mode (hold to talk, double-tap to toggle).
 /// </summary>
 public class HotkeyManager : IHotkeyManager
 {
@@ -22,8 +22,15 @@ public class HotkeyManager : IHotkeyManager
     private const int HOLD_HOTKEY_ID = 1;
     private const int TOGGLE_HOTKEY_ID = 2;
     private const int PASTE_AGAIN_HOTKEY_ID = 3;
+    private const int UNIFIED_HOTKEY_ID = 4;
+
+    // Unified Hotkey Timings
+    private const int HOLD_THRESHOLD_MS = 400;
+    private const int DOUBLE_TAP_WINDOW_MS = 450;
+    private const int MIN_DOUBLE_TAP_GAP_MS = 30;
 
     private readonly object _lock = new();
+    private readonly object _stateLock = new();
     private readonly SynchronizationContext? _syncContext;
     private HotkeyConfiguration? _configuration;
     private IntPtr _windowHandle;
@@ -32,6 +39,13 @@ public class HotkeyManager : IHotkeyManager
     private WndProcDelegate? _wndProc;
     private bool _isHoldKeyPressed;
     private bool _disposed;
+
+    // Unified hotkey state
+    private long _lastUnifiedKeyDownTick;
+    private long _lastUnifiedKeyUpTick;
+    private bool _isUnifiedHeld;
+    private bool _isUnifiedLatched;
+    private System.Threading.Timer? _holdTimer;
 
     // Known system hotkey conflicts (common Windows shortcuts)
     private static readonly HashSet<(ModifierKeys, VirtualKey)> KnownSystemHotkeys = new()
@@ -59,9 +73,6 @@ public class HotkeyManager : IHotkeyManager
     public bool IsActive { get; private set; }
     public HotkeyConfiguration? CurrentConfiguration => _configuration;
 
-    /// <summary>
-    /// Initializes a new instance of the HotkeyManager.
-    /// </summary>
     public HotkeyManager()
     {
         _syncContext = SynchronizationContext.Current;
@@ -85,19 +96,31 @@ public class HotkeyManager : IHotkeyManager
                 return false;
             }
 
-            // Register Hold mode hotkey
-            if (!RegisterSingleHotkey(HOLD_HOTKEY_ID, config.HoldHotkey))
+            if (config.UseUnifiedHotkey && config.UnifiedHotkey != null)
             {
-                CleanupResources();
-                return false;
+                // Register Unified hotkey
+                if (!RegisterSingleHotkey(UNIFIED_HOTKEY_ID, config.UnifiedHotkey))
+                {
+                    CleanupResources();
+                    return false;
+                }
             }
-
-            // Register Toggle mode hotkey
-            if (!RegisterSingleHotkey(TOGGLE_HOTKEY_ID, config.ToggleHotkey))
+            else
             {
-                UnregisterHotKey(_windowHandle, HOLD_HOTKEY_ID);
-                CleanupResources();
-                return false;
+                // Register Hold mode hotkey
+                if (!RegisterSingleHotkey(HOLD_HOTKEY_ID, config.HoldHotkey))
+                {
+                    CleanupResources();
+                    return false;
+                }
+
+                // Register Toggle mode hotkey
+                if (!RegisterSingleHotkey(TOGGLE_HOTKEY_ID, config.ToggleHotkey))
+                {
+                    UnregisterHotKey(_windowHandle, HOLD_HOTKEY_ID);
+                    CleanupResources();
+                    return false;
+                }
             }
 
             // Register optional Paste Again hotkey
@@ -107,12 +130,13 @@ public class HotkeyManager : IHotkeyManager
                 {
                     UnregisterHotKey(_windowHandle, HOLD_HOTKEY_ID);
                     UnregisterHotKey(_windowHandle, TOGGLE_HOTKEY_ID);
+                    UnregisterHotKey(_windowHandle, UNIFIED_HOTKEY_ID);
                     CleanupResources();
                     return false;
                 }
             }
 
-            // Install low-level keyboard hook for Hold mode key release detection
+            // Install low-level keyboard hook
             InstallKeyboardHook();
 
             IsActive = true;
@@ -129,10 +153,21 @@ public class HotkeyManager : IHotkeyManager
                 UnregisterHotKey(_windowHandle, HOLD_HOTKEY_ID);
                 UnregisterHotKey(_windowHandle, TOGGLE_HOTKEY_ID);
                 UnregisterHotKey(_windowHandle, PASTE_AGAIN_HOTKEY_ID);
+                UnregisterHotKey(_windowHandle, UNIFIED_HOTKEY_ID);
             }
 
             UninstallKeyboardHook();
             CleanupResources();
+
+            lock (_stateLock)
+            {
+                _holdTimer?.Dispose();
+                _holdTimer = null;
+                _isUnifiedHeld = false;
+                _isUnifiedLatched = false;
+                _lastUnifiedKeyDownTick = 0;
+                _lastUnifiedKeyUpTick = 0;
+            }
 
             _configuration = null;
             _isHoldKeyPressed = false;
@@ -161,26 +196,40 @@ public class HotkeyManager : IHotkeyManager
         // Check against currently registered hotkeys
         if (_configuration != null)
         {
-            if (_configuration.HoldHotkey.Equals(binding))
+            if (_configuration.UseUnifiedHotkey && _configuration.UnifiedHotkey.Equals(binding))
             {
                 return new HotkeyConflict
                 {
                     Binding = binding,
-                    ConflictDescription = $"This hotkey ({binding}) is already registered as the Hold mode hotkey.",
+                    ConflictDescription = $"This hotkey ({binding}) is already registered as the Dictation hotkey.",
                     IsSystemHotkey = false,
                     ConflictingOwner = "Murmur"
                 };
             }
 
-            if (_configuration.ToggleHotkey.Equals(binding))
+            if (!_configuration.UseUnifiedHotkey)
             {
-                return new HotkeyConflict
+                if (_configuration.HoldHotkey.Equals(binding))
                 {
-                    Binding = binding,
-                    ConflictDescription = $"This hotkey ({binding}) is already registered as the Toggle mode hotkey.",
-                    IsSystemHotkey = false,
-                    ConflictingOwner = "Murmur"
-                };
+                    return new HotkeyConflict
+                    {
+                        Binding = binding,
+                        ConflictDescription = $"This hotkey ({binding}) is already registered as the Hold mode hotkey.",
+                        IsSystemHotkey = false,
+                        ConflictingOwner = "Murmur"
+                    };
+                }
+
+                if (_configuration.ToggleHotkey.Equals(binding))
+                {
+                    return new HotkeyConflict
+                    {
+                        Binding = binding,
+                        ConflictDescription = $"This hotkey ({binding}) is already registered as the Toggle mode hotkey.",
+                        IsSystemHotkey = false,
+                        ConflictingOwner = "Murmur"
+                    };
+                }
             }
 
             if (_configuration.PasteAgainHotkey?.Equals(binding) == true)
@@ -234,14 +283,8 @@ public class HotkeyManager : IHotkeyManager
 
     private bool CreateMessageWindow()
     {
-        // For WM_HOTKEY to be received, the window needs to be created on the same thread
-        // that will pump the message loop. In WPF, this is the UI thread.
-        // We use a message-only window (HWND_MESSAGE parent) for efficiency.
-        
-        // Keep a reference to the delegate to prevent garbage collection
         _wndProc = WndProcCallback;
 
-        // Register a custom window class for our hotkey window
         var className = "MurmurHotkeyWindow_" + Guid.NewGuid().ToString("N");
         
         var wndClass = new WNDCLASSEX
@@ -255,7 +298,6 @@ public class HotkeyManager : IHotkeyManager
         var atom = RegisterClassEx(ref wndClass);
         if (atom == 0)
         {
-            // If registration fails, try using a built-in class
             _windowHandle = CreateWindowEx(
                 0, "STATIC", "MurmurHotkey", 0,
                 0, 0, 0, 0,
@@ -304,6 +346,10 @@ public class HotkeyManager : IHotkeyManager
                     }
                     break;
 
+                case UNIFIED_HOTKEY_ID:
+                    ProcessUnifiedHotkey();
+                    break;
+
                 case PASTE_AGAIN_HOTKEY_ID:
                     if (_configuration?.PasteAgainHotkey != null)
                     {
@@ -311,6 +357,58 @@ public class HotkeyManager : IHotkeyManager
                     }
                     break;
             }
+        }
+    }
+
+    private void ProcessUnifiedHotkey()
+    {
+        if (_configuration?.UnifiedHotkey == null) return;
+        var binding = _configuration.UnifiedHotkey;
+        var now = Environment.TickCount64;
+
+        lock (_stateLock)
+        {
+            // 1. If currently in latched hands-free recording, tapping again stops it
+            if (_isUnifiedLatched)
+            {
+                _isUnifiedLatched = false;
+                _isUnifiedHeld = false;
+                _holdTimer?.Dispose();
+                _holdTimer = null;
+                RaiseEvent(() => OnToggleHotkeyPressed(binding));
+                return;
+            }
+
+            // 2. Double-tap detection: if tapped within window, latch into Hands-Free Toggle
+            var gap = now - _lastUnifiedKeyUpTick;
+            if (_lastUnifiedKeyUpTick > 0 && gap >= MIN_DOUBLE_TAP_GAP_MS && gap <= DOUBLE_TAP_WINDOW_MS)
+            {
+                _holdTimer?.Dispose();
+                _holdTimer = null;
+                _isUnifiedLatched = true;
+                _isUnifiedHeld = false;
+                _lastUnifiedKeyUpTick = 0;
+
+                RaiseEvent(() => OnToggleHotkeyPressed(binding));
+                return;
+            }
+
+            // 3. First press / Single press
+            _lastUnifiedKeyDownTick = now;
+            _isUnifiedHeld = false;
+
+            _holdTimer?.Dispose();
+            _holdTimer = new System.Threading.Timer(_ =>
+            {
+                lock (_stateLock)
+                {
+                    if (!_isUnifiedLatched && _lastUnifiedKeyUpTick < _lastUnifiedKeyDownTick)
+                    {
+                        _isUnifiedHeld = true;
+                        RaiseEvent(() => OnHoldHotkeyPressed(binding));
+                    }
+                }
+            }, null, HOLD_THRESHOLD_MS, Timeout.Infinite);
         }
     }
 
@@ -346,7 +444,6 @@ public class HotkeyManager : IHotkeyManager
 
         if (!RegisterHotKey(_windowHandle, id, modifiers, vk))
         {
-            var error = Marshal.GetLastWin32Error();
             return false;
         }
 
@@ -391,22 +488,51 @@ public class HotkeyManager : IHotkeyManager
 
     private IntPtr LowLevelKeyboardProcCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && _isHoldKeyPressed && _configuration?.HoldHotkey != null)
+        if (nCode >= 0 && _configuration != null)
         {
-            var kbStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            var vkCode = (VirtualKey)kbStruct.vkCode;
             var msgType = wParam.ToInt32();
+            var isKeyUp = (msgType == WM_KEYUP || msgType == WM_SYSKEYUP);
 
-            // Check if this is a key-up event for the main key of the Hold hotkey
-            if ((msgType == WM_KEYUP || msgType == WM_SYSKEYUP) && 
-                vkCode == _configuration.HoldHotkey.Key)
+            if (isKeyUp)
             {
-                // Verify modifiers are still held or were just released
-                if (IsModifierKeyUp(vkCode, _configuration.HoldHotkey.Modifiers))
+                var kbStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                var vkCode = (VirtualKey)kbStruct.vkCode;
+
+                if (_configuration.UseUnifiedHotkey && _configuration.UnifiedHotkey != null)
                 {
-                    _isHoldKeyPressed = false;
-                    var binding = _configuration.HoldHotkey;
-                    RaiseEvent(() => OnHoldHotkeyReleased(binding));
+                    if (IsBindingKeyReleased(vkCode, _configuration.UnifiedHotkey))
+                    {
+                        var now = Environment.TickCount64;
+                        lock (_stateLock)
+                        {
+                            _lastUnifiedKeyUpTick = now;
+
+                            if (_isUnifiedHeld)
+                            {
+                                _isUnifiedHeld = false;
+                                _holdTimer?.Dispose();
+                                _holdTimer = null;
+
+                                var binding = _configuration.UnifiedHotkey;
+                                RaiseEvent(() => OnHoldHotkeyReleased(binding));
+                            }
+                            else
+                            {
+                                // Key released before 400ms: cancel hold timer so it won't fire
+                                _holdTimer?.Dispose();
+                                _holdTimer = null;
+                            }
+                        }
+                    }
+                }
+                else if (_isHoldKeyPressed && _configuration.HoldHotkey != null)
+                {
+                    if (IsBindingKeyReleased(vkCode, _configuration.HoldHotkey))
+                    {
+                        _isHoldKeyPressed = false;
+                        var binding = _configuration.HoldHotkey;
+                        RaiseEvent(() => OnHoldHotkeyReleased(binding));
+                    }
                 }
             }
         }
@@ -414,11 +540,24 @@ public class HotkeyManager : IHotkeyManager
         return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
     }
 
-    private bool IsModifierKeyUp(VirtualKey releasedKey, ModifierKeys expectedModifiers)
+    private static bool IsBindingKeyReleased(VirtualKey releasedKey, HotkeyBinding binding)
     {
-        // For simplicity, we consider the hotkey released when the main key is released
-        // Regardless of modifier state (this matches typical user expectation)
-        return true;
+        if (binding.Key != VirtualKey.None)
+        {
+            return releasedKey == binding.Key;
+        }
+
+        uint vk = (uint)releasedKey;
+        if (binding.Modifiers.HasFlag(ModifierKeys.Ctrl) && (vk == 0x11 || vk == 0xA2 || vk == 0xA3))
+            return true;
+        if (binding.Modifiers.HasFlag(ModifierKeys.Alt) && (vk == 0x12 || vk == 0xA4 || vk == 0xA5))
+            return true;
+        if (binding.Modifiers.HasFlag(ModifierKeys.Shift) && (vk == 0x10 || vk == 0xA0 || vk == 0xA1))
+            return true;
+        if (binding.Modifiers.HasFlag(ModifierKeys.Win) && (vk == 0x5B || vk == 0x5C))
+            return true;
+
+        return false;
     }
 
     private void OnHoldHotkeyPressed(HotkeyBinding binding)

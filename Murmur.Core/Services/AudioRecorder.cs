@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Murmur.Core.Audio;
 using Murmur.Core.Interfaces;
 using Murmur.Core.Models;
@@ -174,6 +175,9 @@ public class AudioRecorder : IAudioRecorder
                 StartWatchdogTimer();
 
                 _waveIn.StartRecording();
+
+                // Disable Windows 11 EcoQoS power throttling and prevent sleep during recording
+                ApplyPowerManagement(isRecording: true);
             }
             catch (Exception ex)
             {
@@ -219,6 +223,9 @@ public class AudioRecorder : IAudioRecorder
                 // Finalize and close the file writer
                 _waveFileWriter?.Dispose();
                 _waveFileWriter = null;
+
+                // Restore normal power throttling and sleep state
+                ApplyPowerManagement(isRecording: false);
 
                 resultPath = _currentFilePath;
                 var duration = DateTime.UtcNow - _recordingStartTime;
@@ -434,6 +441,7 @@ public class AudioRecorder : IAudioRecorder
     /// </summary>
     private void CleanupRecording()
     {
+        ApplyPowerManagement(isRecording: false);
         StopWatchdogTimer();
 
         // Stop and dispose WaveIn
@@ -506,4 +514,104 @@ public class AudioRecorder : IAudioRecorder
     }
 
     #endregion
+
+    #region Win32 Power & QoS Management
+
+    /// <summary>
+    /// Applies Windows 11 EcoQoS (Power Throttling) and Sleep prevention settings.
+    /// During recording, execution speed throttling is disabled and system sleep is inhibited.
+    /// When idle/stopped, default OS power management is restored.
+    /// </summary>
+    private static void ApplyPowerManagement(bool isRecording)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            if (isRecording)
+            {
+                // Prevent system from entering sleep while actively recording audio
+                NativeMethods.SetThreadExecutionState(
+                    NativeMethods.ES_CONTINUOUS | NativeMethods.ES_SYSTEM_REQUIRED);
+
+                // Opt out of Windows 11 EcoQoS (Execution Speed Power Throttling)
+                var powerState = new NativeMethods.PROCESS_POWER_THROTTLING_STATE
+                {
+                    Version = NativeMethods.PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+                    ControlMask = NativeMethods.PROCESS_POWER_THROTTLING_EXECUTION_SPEED | 
+                                  NativeMethods.PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                    StateMask = 0 // Disable throttling
+                };
+
+                NativeMethods.SetProcessInformation(
+                    NativeMethods.GetCurrentProcess(),
+                    NativeMethods.ProcessPowerThrottling,
+                    ref powerState,
+                    (uint)Marshal.SizeOf(powerState));
+            }
+            else
+            {
+                // Reset sleep prevention state
+                NativeMethods.SetThreadExecutionState(NativeMethods.ES_CONTINUOUS);
+
+                // Restore default system-managed power throttling
+                var powerState = new NativeMethods.PROCESS_POWER_THROTTLING_STATE
+                {
+                    Version = NativeMethods.PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+                    ControlMask = NativeMethods.PROCESS_POWER_THROTTLING_EXECUTION_SPEED | 
+                                  NativeMethods.PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                    StateMask = NativeMethods.PROCESS_POWER_THROTTLING_EXECUTION_SPEED // Allow OS power management
+                };
+
+                NativeMethods.SetProcessInformation(
+                    NativeMethods.GetCurrentProcess(),
+                    NativeMethods.ProcessPowerThrottling,
+                    ref powerState,
+                    (uint)Marshal.SizeOf(powerState));
+            }
+        }
+        catch
+        {
+            // Power management optimizations are best-effort; failures must not impact recording.
+        }
+    }
+
+    private static class NativeMethods
+    {
+        public const uint ES_SYSTEM_REQUIRED = 0x00000001;
+        public const uint ES_CONTINUOUS = 0x80000000;
+
+        public const int ProcessPowerThrottling = 4;
+        public const uint PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1;
+        public const uint PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
+        public const uint PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PROCESS_POWER_THROTTLING_STATE
+        {
+            public uint Version;
+            public uint ControlMask;
+            public uint StateMask;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern uint SetThreadExecutionState(uint esFlags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetCurrentProcess();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetProcessInformation(
+            IntPtr hProcess,
+            int processInformationClass,
+            ref PROCESS_POWER_THROTTLING_STATE processInformation,
+            uint processInformationSize);
+    }
+
+    #endregion
+
 }

@@ -38,6 +38,10 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_NOACTIVATE = 0x08000000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
+    private const int WM_MOUSEACTIVATE = 0x0021;
+    private const int MA_NOACTIVATE = 3;
+
+    private HwndSource? _hwndSource;
 
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -290,6 +294,8 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
 
         if (disposing)
         {
+            _hwndSource?.RemoveHook(WndProc);
+            _hwndSource = null;
             // Stop and clean up the timer
             _errorDismissTimer.Stop();
             _errorDismissTimer.Tick -= OnErrorDismissTimerTick;
@@ -380,6 +386,19 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
         var helper = new WindowInteropHelper(this);
         var exStyle = GetWindowLong(helper.Handle, GWL_EXSTYLE);
         SetWindowLong(helper.Handle, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+
+        _hwndSource = HwndSource.FromHwnd(helper.Handle);
+        _hwndSource?.AddHook(WndProc);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_MOUSEACTIVATE)
+        {
+            handled = true;
+            return new IntPtr(MA_NOACTIVATE);
+        }
+        return IntPtr.Zero;
     }
 
     private void UpdateWindowWidth(RecordingMode mode)

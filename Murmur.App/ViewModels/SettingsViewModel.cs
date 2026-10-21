@@ -188,6 +188,48 @@ public class SettingsViewModel : ViewModelBase, IDisposable
     public ObservableCollection<AudioDevice> AvailableDevices { get; } = new();
 
     // Hotkey Settings
+    private HotkeyBinding _unifiedHotkey = new() { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, Key = VirtualKey.None };
+    public HotkeyBinding UnifiedHotkey
+    {
+        get => _unifiedHotkey;
+        set
+        {
+            if (SetProperty(ref _unifiedHotkey, value))
+            {
+                OnPropertyChanged(nameof(UnifiedHotkeyDisplay));
+                MarkChanged();
+            }
+        }
+    }
+
+    private string _unifiedHotkeyDisplay = string.Empty;
+    public string UnifiedHotkeyDisplay
+    {
+        get => string.IsNullOrEmpty(_unifiedHotkeyDisplay) ? _unifiedHotkey.ToString() : _unifiedHotkeyDisplay;
+        set => SetProperty(ref _unifiedHotkeyDisplay, value);
+    }
+
+    private bool _useUnifiedHotkey = true;
+    public bool UseUnifiedHotkey
+    {
+        get => _useUnifiedHotkey;
+        set
+        {
+            if (SetProperty(ref _useUnifiedHotkey, value))
+            {
+                OnPropertyChanged(nameof(UseUnifiedHotkey));
+                OnPropertyChanged(nameof(UseSeparateHotkeys));
+                MarkChanged();
+            }
+        }
+    }
+
+    public bool UseSeparateHotkeys
+    {
+        get => !_useUnifiedHotkey;
+        set => UseUnifiedHotkey = !value;
+    }
+
     private HotkeyBinding _holdHotkey = new();
     public HotkeyBinding HoldHotkey
     {
@@ -709,6 +751,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
     public ICommand CancelCommand { get; }
     public ICommand ResetCommand { get; }
     public ICommand RefreshDevicesCommand { get; }
+    public ICommand RecordUnifiedHotkeyCommand { get; }
     public ICommand RecordHoldHotkeyCommand { get; }
     public ICommand RecordToggleHotkeyCommand { get; }
     public ICommand ValidateApiKeyCommand { get; }
@@ -752,6 +795,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         CancelCommand = new RelayCommand(Cancel);
         ResetCommand = new RelayCommand(Reset);
         RefreshDevicesCommand = new RelayCommand(RefreshDevices);
+        RecordUnifiedHotkeyCommand = new RelayCommand(StartRecordUnifiedHotkey);
         RecordHoldHotkeyCommand = new RelayCommand(StartRecordHoldHotkey);
         RecordToggleHotkeyCommand = new RelayCommand(StartRecordToggleHotkey);
         ValidateApiKeyCommand = new RelayCommand(async () => await ValidateApiKeyWithApiAsync(), CanValidateApiKey);
@@ -783,6 +827,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         CancelCommand = new RelayCommand(() => { });
         ResetCommand = new RelayCommand(() => { });
         RefreshDevicesCommand = new RelayCommand(() => { });
+        RecordUnifiedHotkeyCommand = new RelayCommand(() => { });
         RecordHoldHotkeyCommand = new RelayCommand(() => { });
         RecordToggleHotkeyCommand = new RelayCommand(() => { });
         ValidateApiKeyCommand = new RelayCommand(() => { });
@@ -836,6 +881,9 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             ShortcutStartDelay = settings.ShortcutStartDelay;
             OutputLanguage = settings.OutputLanguage;
 
+            UseUnifiedHotkey = settings.UseUnifiedHotkey;
+            UnifiedHotkey = settings.UnifiedHotkey.Clone();
+            UnifiedHotkeyDisplay = UnifiedHotkey.ToString();
             HoldHotkey = settings.HoldHotkey.Clone();
             HoldHotkeyDisplay = HoldHotkey.ToString();
             _selectedHoldPreset = null;
@@ -875,6 +923,8 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             StartWithWindows = StartWithWindows,
             TranscriptionTimeoutSeconds = TranscriptionTimeoutSeconds,
             PostProcessingTimeoutSeconds = PostProcessingTimeoutSeconds,
+            UseUnifiedHotkey = UseUnifiedHotkey,
+            UnifiedHotkey = UnifiedHotkey.Clone(),
             HoldHotkey = HoldHotkey.Clone(),
             ToggleHotkey = ToggleHotkey.Clone(),
             // New settings properties
@@ -1221,6 +1271,12 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private void StartRecordUnifiedHotkey()
+    {
+        UnifiedHotkeyDisplay = "Press keys...";
+        RequestHotkeyRecording?.Invoke(this, new HotkeyRecordingEventArgs(HotkeyType.Unified));
+    }
+
     private void StartRecordHoldHotkey()
     {
         RequestHotkeyRecording?.Invoke(this, new HotkeyRecordingEventArgs(HotkeyType.Hold));
@@ -1247,6 +1303,11 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         // Set property using backing field to avoid triggering debounced auto-save
         switch (type)
         {
+            case HotkeyType.Unified:
+                SetProperty(ref _unifiedHotkey, binding, nameof(UnifiedHotkey));
+                UnifiedHotkeyDisplay = binding.ToString();
+                HotkeyStatusMessage = $"✓ Unified shortcut set to {binding}!";
+                break;
             case HotkeyType.Hold:
                 SetProperty(ref _holdHotkey, binding, nameof(HoldHotkey));
                 HoldHotkeyDisplay = binding.ToString();
@@ -1300,65 +1361,26 @@ public class SettingsViewModel : ViewModelBase, IDisposable
     {
         if (string.IsNullOrEmpty(preset)) return;
 
-        switch (preset)
+        HotkeyBinding? binding = preset switch
         {
-            case "Ctrl+Win":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, 
-                    Key = VirtualKey.None 
-                });
-                break;
-            case "Ctrl+Shift+Space":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Shift, 
-                    Key = VirtualKey.Space 
-                });
-                break;
-            case "Alt+Space":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.Alt, 
-                    Key = VirtualKey.Space 
-                });
-                break;
-            case "Ctrl+Space":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.Ctrl, 
-                    Key = VirtualKey.Space 
-                });
-                break;
-            case "Ctrl+Alt+Space":
-                SetRecordedHotkey(HotkeyType.Toggle, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, 
-                    Key = VirtualKey.Space 
-                });
-                break;
-            case "Win+H":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.Win, 
-                    Key = VirtualKey.H 
-                });
-                break;
-            case "F8":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.None, 
-                    Key = VirtualKey.F8 
-                });
-                break;
-            case "F9":
-                SetRecordedHotkey(HotkeyType.Hold, new HotkeyBinding 
-                { 
-                    Modifiers = CoreModifierKeys.None, 
-                    Key = VirtualKey.F9 
-                });
-                break;
-        }
+            "Ctrl+Win" => new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Win, Key = VirtualKey.None },
+            "Ctrl+Shift+Space" => new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Shift, Key = VirtualKey.Space },
+            "Alt+Space" => new HotkeyBinding { Modifiers = CoreModifierKeys.Alt, Key = VirtualKey.Space },
+            "Ctrl+Space" => new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl, Key = VirtualKey.Space },
+            "Ctrl+Alt+Space" => new HotkeyBinding { Modifiers = CoreModifierKeys.Ctrl | CoreModifierKeys.Alt, Key = VirtualKey.Space },
+            "Win+H" => new HotkeyBinding { Modifiers = CoreModifierKeys.Win, Key = VirtualKey.H },
+            "F8" => new HotkeyBinding { Modifiers = CoreModifierKeys.None, Key = VirtualKey.F8 },
+            "F9" => new HotkeyBinding { Modifiers = CoreModifierKeys.None, Key = VirtualKey.F9 },
+            _ => null
+        };
+
+        if (binding == null) return;
+
+        var targetType = UseUnifiedHotkey
+            ? HotkeyType.Unified
+            : (CustomTargetIsHold ? HotkeyType.Hold : HotkeyType.Toggle);
+
+        SetRecordedHotkey(targetType, binding);
     }
 
     private void ResetHotkeys()
@@ -1533,7 +1555,8 @@ public enum PostProcessingMode
 public enum HotkeyType
 {
     Hold,
-    Toggle
+    Toggle,
+    Unified
 }
 
 /// <summary>
