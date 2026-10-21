@@ -915,6 +915,46 @@ public class RecordingIndicatorViewModelTests
         Assert.True(vm.CancelCommand.CanExecute(null));
     }
 
+    [Fact]
+    public void StopCommand_WhenExecuted_RaisesStopRequestedEvent()
+    {
+        // Arrange
+        var vm = new RecordingIndicatorViewModel();
+        var eventRaised = false;
+        vm.StopRequested += (s, e) => eventRaised = true;
+
+        // Act
+        vm.StopCommand.Execute(null);
+
+        // Assert
+        Assert.True(eventRaised);
+    }
+
+    [Fact]
+    public void StopCommand_EventSenderIsViewModel()
+    {
+        // Arrange
+        var vm = new RecordingIndicatorViewModel();
+        object? sender = null;
+        vm.StopRequested += (s, e) => sender = s;
+
+        // Act
+        vm.StopCommand.Execute(null);
+
+        // Assert
+        Assert.Same(vm, sender);
+    }
+
+    [Fact]
+    public void StopCommand_CanExecute_ReturnsTrue()
+    {
+        // Arrange
+        var vm = new RecordingIndicatorViewModel();
+
+        // Assert
+        Assert.True(vm.StopCommand.CanExecute(null));
+    }
+
     #endregion
 
     #region State Boolean Properties Tests

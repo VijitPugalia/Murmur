@@ -72,6 +72,22 @@ public partial class App : Application
             _recordingIndicator = new RecordingIndicator();
             var windowHelper = new System.Windows.Interop.WindowInteropHelper(_recordingIndicator);
             windowHelper.EnsureHandle();
+            _recordingIndicator.StopRequested += async (s, args) =>
+            {
+                if (orchestrator.IsActive && orchestrator.CurrentState != Core.Models.PipelineState.Error)
+                {
+                    DebugLogger.Log("[App] Indicator StopRequested -> stopping and committing dictation...\n");
+                    await orchestrator.StopAsync();
+                }
+            };
+            _recordingIndicator.CancelRequested += (s, args) =>
+            {
+                if (orchestrator.IsActive)
+                {
+                    DebugLogger.Log("[App] Indicator CancelRequested -> cancelling dictation...\n");
+                    orchestrator.Cancel();
+                }
+            };
             _appState.ShowRecordingIndicator += OnShowRecordingIndicator;
             _appState.HideRecordingIndicator += OnHideRecordingIndicator;
             _appState.ErrorOccurred += OnErrorOccurred;

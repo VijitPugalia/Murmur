@@ -95,6 +95,11 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     public event EventHandler? CancelRequested;
 
     /// <summary>
+    /// Event raised when the user clicks the stop button to finish and commit recording.
+    /// </summary>
+    public event EventHandler? StopRequested;
+
+    /// <summary>
     /// Creates a new RecordingIndicator window.
     /// </summary>
     public RecordingIndicator()
@@ -106,6 +111,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
 
         // Subscribe to ViewModel events
         _viewModel.CancelRequested += OnViewModelCancelRequested;
+        _viewModel.StopRequested += OnViewModelStopRequested;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
         // Set up error dismiss timer
@@ -310,6 +316,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
 
             // Unsubscribe from ViewModel events
             _viewModel.CancelRequested -= OnViewModelCancelRequested;
+            _viewModel.StopRequested -= OnViewModelStopRequested;
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 
             // Unsubscribe from window events
@@ -336,6 +343,11 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
         CancelRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void OnViewModelStopRequested(object? sender, EventArgs e)
+    {
+        StopRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     private void OnErrorDismissTimerTick(object? sender, EventArgs e)
     {
         _errorDismissTimer.Stop();
@@ -356,8 +368,8 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
 
     private void StopButton_Click(object sender, RoutedEventArgs e)
     {
-        // Trigger cancel when stop button is clicked (Toggle mode)
-        _viewModel.CancelCommand.Execute(null);
+        // Trigger stop and commit transcription when stop button is clicked (Toggle mode)
+        _viewModel.StopCommand.Execute(null);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)

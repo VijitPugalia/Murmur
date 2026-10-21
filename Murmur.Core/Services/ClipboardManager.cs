@@ -141,7 +141,12 @@ public sealed class ClipboardManager : IClipboardManager, IDisposable
                     try
                     {
                         await Task.Delay(ClipboardRestoreDelay, CancellationToken.None);
-                        await SetTextAsync(originalClipboardContent, html: null, excludeFromHistory: false, CancellationToken.None);
+                        var currentText = await GetTextAsync(CancellationToken.None);
+                        // Only restore if clipboard still holds the Murmur transcript (user hasn't copied anything new)
+                        if (currentText == text)
+                        {
+                            await SetTextAsync(originalClipboardContent, html: null, excludeFromHistory: false, CancellationToken.None);
+                        }
                     }
                     catch
                     {

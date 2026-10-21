@@ -297,6 +297,11 @@ public class RecordingIndicatorViewModel : ViewModelBase
     /// </summary>
     public ICommand CancelCommand { get; }
 
+    /// <summary>
+    /// Command executed when the user clicks the stop button to finish dictation.
+    /// </summary>
+    public ICommand StopCommand { get; }
+
     #endregion
 
     #region Events
@@ -305,6 +310,11 @@ public class RecordingIndicatorViewModel : ViewModelBase
     /// Event raised when the user requests to cancel the current operation.
     /// </summary>
     public event EventHandler? CancelRequested;
+
+    /// <summary>
+    /// Event raised when the user requests to stop recording and commit transcription.
+    /// </summary>
+    public event EventHandler? StopRequested;
 
     #endregion
 
@@ -316,6 +326,7 @@ public class RecordingIndicatorViewModel : ViewModelBase
     public RecordingIndicatorViewModel()
     {
         CancelCommand = new RelayCommand(OnCancel);
+        StopCommand = new RelayCommand(OnStop);
         UpdateStatusText();
     }
 
@@ -397,6 +408,11 @@ public class RecordingIndicatorViewModel : ViewModelBase
     private void OnCancel()
     {
         CancelRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnStop()
+    {
+        StopRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void UpdateStateVisibility()
