@@ -29,6 +29,8 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
     private string? _rawTranscript;
     private TaskCompletionSource<bool>? _initializationTcs;
     private AppContextSnapshot? _activeContext;
+    private Task<AppContextSnapshot>? _contextCaptureTask;
+    private readonly object _mutingLock = new();
     private MMDevice? _mutedDevice;
     private bool _didMuteAudio;
     private bool _disposed;
@@ -134,15 +136,29 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
             DebugLogger.Log("  Transitioning to Initializing\n");
             SetState(PipelineState.Initializing);
 
-            var settings = _settingsManager.Load();
-            HandleAudioMutingStart(settings);
-            _activeContext = _contextService.GetActiveContext();
+            // Start audio recording IMMEDIATELY - highest priority to minimize user-perceived hotkey latency
+            DebugLogger.Log("  Starting audio recording immediately...\n");
+            var recordingTask = _audioRecorder.StartRecordingAsync(deviceId);
 
-            // Start recording
-            DebugLogger.Log("  Starting audio recording...\n");
-            await _audioRecorder.StartRecordingAsync(deviceId);
+            // Concurrently capture active context and handle audio muting in background tasks
+            _contextCaptureTask = Task.Run(() => _contextService.GetActiveContext());
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    var settings = _settingsManager.Load();
+                    HandleAudioMutingStart(settings);
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.Log($"  Audio muting failed: {ex.Message}\n");
+                }
+            });
 
-            // Transition to Recording
+            // Await ONLY the audio recorder startup
+            await recordingTask;
+
+            // Transition to Recording immediately
             DebugLogger.Log("  Transitioning to Recording\n");
             SetState(PipelineState.Recording);
             _initializationTcs?.TrySetResult(true);
@@ -150,12 +166,14 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
         catch (OperationCanceledException)
         {
             DebugLogger.Log("  Cancelled during initialization\n");
+            _contextCaptureTask = null;
             _initializationTcs?.TrySetCanceled();
             HandleCancellation();
         }
         catch (Exception ex)
         {
             DebugLogger.Log($"  Exception: {ex.Message}\n");
+            _contextCaptureTask = null;
             _initializationTcs?.TrySetException(ex);
             HandleError(PipelineState.Initializing, "Failed to start recording", ex);
         }
@@ -267,6 +285,24 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
             // Transition to PostProcessing
             DebugLogger.Log("  Transitioning to PostProcessing\n");
             SetState(PipelineState.PostProcessing);
+
+            // Ensure background context capture completes before post-processing uses it
+            if (_contextCaptureTask != null)
+            {
+                try
+                {
+                    _activeContext = await _contextCaptureTask;
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.Log($"  Context capture failed: {ex.Message}\n");
+                    _activeContext = new AppContextSnapshot(null, null, null, null, string.Empty);
+                }
+                finally
+                {
+                    _contextCaptureTask = null;
+                }
+            }
 
             // Load settings for post-processing
             var settings = _settingsManager.Load();
@@ -435,6 +471,7 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
 
         // Signal cancellation
         _pipelineCts?.Cancel();
+        _contextCaptureTask = null;
 
         // If we're recording, cancel the recording
         if (currentState == PipelineState.Recording || currentState == PipelineState.Initializing)
@@ -470,20 +507,25 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
     {
         if (!settings.MuteAudioDuringDictation) return;
 
-        try
+        lock (_mutingLock)
         {
-            using var enumerator = new MMDeviceEnumerator();
-            _mutedDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-            if (_mutedDevice != null && !_mutedDevice.AudioEndpointVolume.Mute)
+            if (CurrentState == PipelineState.Idle) return;
+
+            try
             {
-                _mutedDevice.AudioEndpointVolume.Mute = true;
-                _didMuteAudio = true;
-                DebugLogger.Log("  Muted system audio playback for dictation\n");
+                using var enumerator = new MMDeviceEnumerator();
+                _mutedDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                if (_mutedDevice != null && !_mutedDevice.AudioEndpointVolume.Mute)
+                {
+                    _mutedDevice.AudioEndpointVolume.Mute = true;
+                    _didMuteAudio = true;
+                    DebugLogger.Log("  Muted system audio playback for dictation\n");
+                }
             }
-        }
-        catch
-        {
-            // CoreAudio muting is best-effort
+            catch
+            {
+                // CoreAudio muting is best-effort
+            }
         }
     }
 
@@ -492,20 +534,23 @@ public class PipelineOrchestrator : IPipelineOrchestrator, IDisposable
     /// </summary>
     private void HandleAudioMutingEnd()
     {
-        if (_didMuteAudio && _mutedDevice != null)
+        lock (_mutingLock)
         {
-            try
+            if (_didMuteAudio && _mutedDevice != null)
             {
-                _mutedDevice.AudioEndpointVolume.Mute = false;
-                DebugLogger.Log("  Unmuted system audio playback\n");
-            }
-            catch
-            {
-            }
-            finally
-            {
-                _didMuteAudio = false;
-                _mutedDevice = null;
+                try
+                {
+                    _mutedDevice.AudioEndpointVolume.Mute = false;
+                    DebugLogger.Log("  Unmuted system audio playback\n");
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    _didMuteAudio = false;
+                    _mutedDevice = null;
+                }
             }
         }
     }

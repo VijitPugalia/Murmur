@@ -12,6 +12,16 @@ public class SoundEffectService : ISoundEffectService
     private const int SampleRate = 44100;
     private readonly ISettingsManager _settingsManager;
 
+    private static readonly short[] RawStartSamples = GenerateStartSamples();
+    private static readonly short[] RawSuccessSamples = GenerateSuccessSamples();
+    private static readonly short[] RawErrorSamples = GenerateErrorSamples();
+
+    private readonly object _playerLock = new();
+    private double _cachedVolume = -1.0;
+    private SoundPlayer? _startPlayer;
+    private SoundPlayer? _successPlayer;
+    private SoundPlayer? _errorPlayer;
+
     public SoundEffectService(ISettingsManager settingsManager)
     {
         _settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
@@ -19,60 +29,22 @@ public class SoundEffectService : ISoundEffectService
 
     public void PlayRecordingStart()
     {
-        // Rising subtle chime: 480 Hz -> 660 Hz over 90ms
-        PlayToneAsync(sampleCount =>
-        {
-            var samples = new short[sampleCount];
-            var duration = (double)sampleCount / SampleRate;
-            for (int i = 0; i < sampleCount; i++)
-            {
-                var t = (double)i / sampleCount;
-                var freq = 480.0 + (180.0 * t);
-                var phase = 2.0 * Math.PI * freq * (i / (double)SampleRate);
-                var env = Envelope(i, sampleCount, attackSamples: 400, decaySamples: 800);
-                samples[i] = (short)(Math.Sin(phase) * env * 32767.0);
-            }
-            return samples;
-        }, durationMs: 90);
+        PlayTone(SoundType.Start);
     }
 
     public void PlayDictationSuccess()
     {
-        // Two-tone pleasant confirmation chime: 784 Hz (G5) -> 1046 Hz (C6) over 130ms
-        PlayToneAsync(sampleCount =>
-        {
-            var samples = new short[sampleCount];
-            var split = (int)(sampleCount * 0.45);
-            for (int i = 0; i < sampleCount; i++)
-            {
-                double freq = i < split ? 784.0 : 1046.5;
-                var phase = 2.0 * Math.PI * freq * (i / (double)SampleRate);
-                var env = Envelope(i, sampleCount, attackSamples: 300, decaySamples: 1200);
-                samples[i] = (short)(Math.Sin(phase) * env * 32767.0);
-            }
-            return samples;
-        }, durationMs: 130);
+        PlayTone(SoundType.Success);
     }
 
     public void PlayError()
     {
-        // Descending low cue: 320 Hz -> 220 Hz over 130ms
-        PlayToneAsync(sampleCount =>
-        {
-            var samples = new short[sampleCount];
-            for (int i = 0; i < sampleCount; i++)
-            {
-                var t = (double)i / sampleCount;
-                var freq = 320.0 - (100.0 * t);
-                var phase = 2.0 * Math.PI * freq * (i / (double)SampleRate);
-                var env = Envelope(i, sampleCount, attackSamples: 400, decaySamples: 1000);
-                samples[i] = (short)(Math.Sin(phase) * env * 32767.0);
-            }
-            return samples;
-        }, durationMs: 130);
+        PlayTone(SoundType.Error);
     }
 
-    private void PlayToneAsync(Func<int, short[]> generator, int durationMs)
+    private enum SoundType { Start, Success, Error }
+
+    private void PlayTone(SoundType type)
     {
         try
         {
@@ -82,36 +54,110 @@ public class SoundEffectService : ISoundEffectService
                 return;
             }
 
-            var volumeScale = Math.Clamp(settings.SoundVolume / 100.0, 0.0, 1.0) * 0.35; // Cap at 35% max amplitude for pleasant subtlety
+            var volume = settings.SoundVolume;
+            SoundPlayer? player;
 
-            Task.Run(() =>
+            lock (_playerLock)
             {
-                try
+                if (Math.Abs(_cachedVolume - volume) > 0.001 || _startPlayer == null)
                 {
-                    var sampleCount = (int)(SampleRate * (durationMs / 1000.0));
-                    var rawSamples = generator(sampleCount);
-
-                    // Scale by volume
-                    for (int i = 0; i < rawSamples.Length; i++)
-                    {
-                        rawSamples[i] = (short)(rawSamples[i] * volumeScale);
-                    }
-
-                    var wavBytes = CreateWavBytes(rawSamples, SampleRate);
-                    using var ms = new MemoryStream(wavBytes);
-                    using var player = new SoundPlayer(ms);
-                    player.Play();
+                    RebuildPlayers(volume);
                 }
-                catch
+
+                player = type switch
                 {
-                    // Audio feedback is best-effort and must never crash app
-                }
-            });
+                    SoundType.Start => _startPlayer,
+                    SoundType.Success => _successPlayer,
+                    SoundType.Error => _errorPlayer,
+                    _ => _startPlayer
+                };
+            }
+
+            player?.Play();
         }
         catch
         {
-            // Best effort
+            // Audio feedback is best-effort and must never crash app
         }
+    }
+
+    private void RebuildPlayers(double volume)
+    {
+        var volumeScale = Math.Clamp(volume / 100.0, 0.0, 1.0) * 0.35; // Cap at 35% max amplitude for pleasant subtlety
+        _startPlayer = CreatePlayer(RawStartSamples, volumeScale);
+        _successPlayer = CreatePlayer(RawSuccessSamples, volumeScale);
+        _errorPlayer = CreatePlayer(RawErrorSamples, volumeScale);
+        _cachedVolume = volume;
+    }
+
+    private static SoundPlayer CreatePlayer(short[] baseSamples, double volumeScale)
+    {
+        var scaled = new short[baseSamples.Length];
+        for (int i = 0; i < baseSamples.Length; i++)
+        {
+            scaled[i] = (short)(baseSamples[i] * volumeScale);
+        }
+
+        var wavBytes = CreateWavBytes(scaled, SampleRate);
+        var ms = new MemoryStream(wavBytes);
+        var player = new SoundPlayer(ms);
+        try
+        {
+            player.Load();
+        }
+        catch
+        {
+            // Best effort preload
+        }
+        return player;
+    }
+
+    private static short[] GenerateStartSamples()
+    {
+        // Rising subtle chime: 480 Hz -> 660 Hz over 90ms
+        int sampleCount = (int)(SampleRate * (90 / 1000.0));
+        var samples = new short[sampleCount];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            var t = (double)i / sampleCount;
+            var freq = 480.0 + (180.0 * t);
+            var phase = 2.0 * Math.PI * freq * (i / (double)SampleRate);
+            var env = Envelope(i, sampleCount, attackSamples: 400, decaySamples: 800);
+            samples[i] = (short)(Math.Sin(phase) * env * 32767.0);
+        }
+        return samples;
+    }
+
+    private static short[] GenerateSuccessSamples()
+    {
+        // Two-tone pleasant confirmation chime: 784 Hz (G5) -> 1046 Hz (C6) over 130ms
+        int sampleCount = (int)(SampleRate * (130 / 1000.0));
+        var samples = new short[sampleCount];
+        var split = (int)(sampleCount * 0.45);
+        for (int i = 0; i < sampleCount; i++)
+        {
+            double freq = i < split ? 784.0 : 1046.5;
+            var phase = 2.0 * Math.PI * freq * (i / (double)SampleRate);
+            var env = Envelope(i, sampleCount, attackSamples: 300, decaySamples: 1200);
+            samples[i] = (short)(Math.Sin(phase) * env * 32767.0);
+        }
+        return samples;
+    }
+
+    private static short[] GenerateErrorSamples()
+    {
+        // Descending low cue: 320 Hz -> 220 Hz over 130ms
+        int sampleCount = (int)(SampleRate * (130 / 1000.0));
+        var samples = new short[sampleCount];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            var t = (double)i / sampleCount;
+            var freq = 320.0 - (100.0 * t);
+            var phase = 2.0 * Math.PI * freq * (i / (double)SampleRate);
+            var env = Envelope(i, sampleCount, attackSamples: 400, decaySamples: 1000);
+            samples[i] = (short)(Math.Sin(phase) * env * 32767.0);
+        }
+        return samples;
     }
 
     private static double Envelope(int index, int total, int attackSamples, int decaySamples)

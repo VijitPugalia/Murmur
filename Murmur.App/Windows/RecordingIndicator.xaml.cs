@@ -125,6 +125,14 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
 
     #region IRecordingIndicator Implementation
 
+    private void RunOnUi(Action action)
+    {
+        if (Dispatcher.CheckAccess())
+            action();
+        else
+            Dispatcher.Invoke(action);
+    }
+
     private void EnsureTopmost()
     {
         var helper = new WindowInteropHelper(this);
@@ -137,7 +145,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void ShowInitializing(RecordingMode mode)
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             _viewModel.ShowInitializing(mode);
             UpdateWindowWidth(mode);
@@ -152,17 +160,17 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void ShowRecording(RecordingMode mode)
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             StopAnimations();
             _viewModel.ShowRecording(mode);
             UpdateWindowWidth(mode);
-            PositionWindow();
-            Topmost = true;
             if (!IsVisible)
             {
+                PositionWindow();
                 Show();
             }
+            Topmost = true;
             EnsureTopmost();
         });
     }
@@ -170,7 +178,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void ShowProcessing()
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             StopAnimations();
             _viewModel.ShowProcessing();
@@ -189,7 +197,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void ShowError(string message, TimeSpan duration)
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             StopAnimations();
             _viewModel.ShowError(message);
@@ -214,7 +222,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void UpdateAudioLevel(float level)
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             _viewModel.AudioLevel = level;
         });
@@ -223,7 +231,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void UpdateElapsedTime(TimeSpan elapsed)
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             _viewModel.ElapsedTime = elapsed;
         });
@@ -232,7 +240,7 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
     /// <inheritdoc/>
     public void Dismiss()
     {
-        Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             StopAnimations();
             _errorDismissTimer.Stop();
@@ -417,9 +425,9 @@ public partial class RecordingIndicator : Window, IRecordingIndicator, IDisposab
             var mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
             if (hMonitor != IntPtr.Zero && GetMonitorInfo(hMonitor, ref mi))
             {
-                var source = PresentationSource.FromVisual(this);
-                double dpiX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
-                double dpiY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+                var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+                double dpiX = dpi.DpiScaleX;
+                double dpiY = dpi.DpiScaleY;
 
                 double workLeft = mi.rcWork.Left / dpiX;
                 double workWidth = (mi.rcWork.Right - mi.rcWork.Left) / dpiX;

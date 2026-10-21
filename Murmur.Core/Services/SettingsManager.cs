@@ -21,6 +21,9 @@ public class SettingsManager : ISettingsManager
     private readonly string _settingsDirectory;
     private readonly string _settingsFilePath;
     private readonly bool _enforcePermissions;
+    private readonly object _cacheLock = new();
+    private AppSettings? _cachedSettings;
+    private DateTime _lastFileWriteTimeUtc;
 
     public string SettingsFilePath => _settingsFilePath;
 
@@ -75,34 +78,48 @@ public class SettingsManager : ISettingsManager
 
     public AppSettings Load()
     {
-        try
+        lock (_cacheLock)
         {
-            if (!File.Exists(_settingsFilePath))
+            try
             {
-                return CreateDefaultSettings();
-            }
+                if (!File.Exists(_settingsFilePath))
+                {
+                    _cachedSettings = CreateDefaultSettings();
+                    _lastFileWriteTimeUtc = default;
+                    return _cachedSettings;
+                }
 
-            // Validate file permissions before reading
-            if (_enforcePermissions && !ValidateFilePermissions(_settingsFilePath))
+                var lastWrite = File.GetLastWriteTimeUtc(_settingsFilePath);
+                if (_cachedSettings != null && lastWrite == _lastFileWriteTimeUtc)
+                {
+                    return _cachedSettings;
+                }
+
+                // Validate file permissions before reading
+                if (_enforcePermissions && !ValidateFilePermissions(_settingsFilePath))
+                {
+                    // File has insecure permissions, fix them
+                    SetUserOnlyPermissions(_settingsFilePath);
+                }
+
+                var json = File.ReadAllText(_settingsFilePath);
+                var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
+
+                _cachedSettings = settings ?? CreateDefaultSettings();
+                _lastFileWriteTimeUtc = File.GetLastWriteTimeUtc(_settingsFilePath);
+                return _cachedSettings;
+            }
+            catch (JsonException)
             {
-                // File has insecure permissions, fix them
-                SetUserOnlyPermissions(_settingsFilePath);
+                // If JSON is malformed, return defaults
+                _cachedSettings = CreateDefaultSettings();
+                return _cachedSettings;
             }
-
-            var json = File.ReadAllText(_settingsFilePath);
-            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
-            
-            return settings ?? CreateDefaultSettings();
-        }
-        catch (JsonException)
-        {
-            // If JSON is malformed, return defaults
-            return CreateDefaultSettings();
-        }
-        catch (Exception)
-        {
-            // For any other error (IO, permissions), return defaults
-            return CreateDefaultSettings();
+            catch (Exception)
+            {
+                // For any other error (IO, permissions), return defaults
+                return _cachedSettings ?? CreateDefaultSettings();
+            }
         }
     }
 
@@ -131,6 +148,12 @@ public class SettingsManager : ISettingsManager
 
             // Atomic rename (overwrites existing file)
             File.Move(tempPath, _settingsFilePath, overwrite: true);
+
+            lock (_cacheLock)
+            {
+                _cachedSettings = settings;
+                _lastFileWriteTimeUtc = File.GetLastWriteTimeUtc(_settingsFilePath);
+            }
         }
         catch
         {

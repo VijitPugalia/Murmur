@@ -281,6 +281,15 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
         (GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0 ||
         (GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
 
+    private static bool IsModifierVk(uint vkCode, ModifierKeys modifiers)
+    {
+        if ((modifiers & ModifierKeys.Ctrl) != 0 && vkCode is (uint)VK_CONTROL or (uint)VK_LCONTROL or (uint)VK_RCONTROL) return true;
+        if ((modifiers & ModifierKeys.Win) != 0 && vkCode is (uint)VK_LWIN or (uint)VK_RWIN) return true;
+        if ((modifiers & ModifierKeys.Alt) != 0 && vkCode is (uint)VK_MENU or (uint)VK_LMENU or (uint)VK_RMENU) return true;
+        if ((modifiers & ModifierKeys.Shift) != 0 && vkCode is (uint)VK_SHIFT or (uint)VK_LSHIFT or (uint)VK_RSHIFT) return true;
+        return false;
+    }
+
     private static void SuppressStartMenu()
     {
         keybd_event(VK_DUMMY, 0, 0, UIntPtr.Zero);
@@ -290,6 +299,11 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
     private static bool MatchesBinding(HotkeyBinding? binding, uint vkCode, bool checkMainKey)
     {
         if (binding == null || binding.IsDisabled) return false;
+
+        if (binding.Key == VirtualKey.None && !IsModifierVk(vkCode, binding.Modifiers))
+        {
+            return false;
+        }
 
         bool ctrlRequired = (binding.Modifiers & ModifierKeys.Ctrl) != 0;
         bool winRequired = (binding.Modifiers & ModifierKeys.Win) != 0;
@@ -341,14 +355,13 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
 
                 if (matches)
                 {
-                    Log($"Hold key combination pressed: {holdHotkey}");
                     _isHoldActive = true;
                     if ((holdHotkey.Modifiers & ModifierKeys.Win) != 0)
                     {
                         SuppressStartMenu();
                     }
                     var binding = holdHotkey;
-                    Application.Current?.Dispatcher.BeginInvoke(() => OnHoldHotkeyPressed(binding));
+                    Application.Current?.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send, () => OnHoldHotkeyPressed(binding));
                 }
             }
             // Handle HOLD hotkey key-up
@@ -378,14 +391,13 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
 
                 if (shouldRelease)
                 {
-                    Log($"Hold key released (vkCode={vkCode})");
                     _isHoldActive = false;
                     if ((holdHotkey.Modifiers & ModifierKeys.Win) != 0)
                     {
                         SuppressStartMenu();
                     }
                     var binding = holdHotkey;
-                    Application.Current?.Dispatcher.BeginInvoke(() => OnHoldHotkeyReleased(binding));
+                    Application.Current?.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send, () => OnHoldHotkeyReleased(binding));
                 }
             }
         }

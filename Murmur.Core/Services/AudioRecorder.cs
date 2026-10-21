@@ -34,11 +34,22 @@ public class AudioRecorder : IAudioRecorder
     /// </summary>
     private const int WatchdogTimeoutMs = 2000;
 
+    /// <summary>
+    /// Device cache TTL (5 seconds).
+    /// </summary>
+    private static readonly TimeSpan DeviceCacheTtl = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Pre-allocated WaveFormat: 16kHz, 16-bit, Mono PCM.
+    /// </summary>
+    private static readonly WaveFormat RecordWaveFormat = new(SampleRate, BitsPerSample, Channels);
+
     #endregion
 
     #region Fields
 
     private WaveInEvent? _waveIn;
+    private WaveInEvent? _prewarmedWaveIn;
     private WaveFileWriter? _waveFileWriter;
     private string? _currentFilePath;
     private readonly LiveAudioLevelNormalizer _levelNormalizer;
@@ -46,6 +57,9 @@ public class AudioRecorder : IAudioRecorder
     private DateTime _lastDataReceivedTime;
     private System.Timers.Timer? _watchdogTimer;
     private readonly object _recordingLock = new();
+    private readonly object _deviceLock = new();
+    private IReadOnlyList<AudioDevice>? _cachedDevices;
+    private DateTime _lastDeviceScanTime = DateTime.MinValue;
     private bool _isRecording;
     private bool _isDisposed;
     private int _usedDeviceNumber = -1;
@@ -89,6 +103,27 @@ public class AudioRecorder : IAudioRecorder
     public AudioRecorder()
     {
         _levelNormalizer = new LiveAudioLevelNormalizer();
+        Warmup();
+    }
+
+    /// <summary>
+    /// Pre-warms NAudio types, JIT compiles recording methods, and pre-caches audio devices.
+    /// Call during application startup to ensure sub-10ms initial hotkey response.
+    /// </summary>
+    public void Warmup()
+    {
+        Task.Run(() =>
+        {
+            try
+            {
+                GetAvailableDevices();
+                SchedulePrewarm();
+            }
+            catch
+            {
+                // Warmup is best-effort
+            }
+        });
     }
 
     #endregion
@@ -98,20 +133,29 @@ public class AudioRecorder : IAudioRecorder
     /// <inheritdoc />
     public IReadOnlyList<AudioDevice> GetAvailableDevices()
     {
-        var devices = new List<AudioDevice>();
-        int deviceCount = WaveIn.DeviceCount;
-
-        for (int i = 0; i < deviceCount; i++)
+        lock (_deviceLock)
         {
-            var capabilities = WaveIn.GetCapabilities(i);
-            devices.Add(new AudioDevice(
-                id: i.ToString(),
-                name: capabilities.ProductName,
-                isDefault: i == 0  // Device 0 is typically the default
-            ));
-        }
+            int deviceCount = WaveIn.DeviceCount;
+            if (_cachedDevices != null && _cachedDevices.Count == deviceCount && (DateTime.UtcNow - _lastDeviceScanTime) < DeviceCacheTtl)
+            {
+                return _cachedDevices;
+            }
 
-        return devices.AsReadOnly();
+            var devices = new List<AudioDevice>();
+            for (int i = 0; i < deviceCount; i++)
+            {
+                var capabilities = WaveIn.GetCapabilities(i);
+                devices.Add(new AudioDevice(
+                    id: i.ToString(),
+                    name: capabilities.ProductName,
+                    isDefault: i == 0  // Device 0 is typically the default
+                ));
+            }
+
+            _cachedDevices = devices.AsReadOnly();
+            _lastDeviceScanTime = DateTime.UtcNow;
+            return _cachedDevices;
+        }
     }
 
     /// <inheritdoc />
@@ -126,8 +170,9 @@ public class AudioRecorder : IAudioRecorder
                 throw new InvalidOperationException("Recording is already in progress.");
             }
 
-            var devices = GetAvailableDevices();
-            if (devices.Count == 0)
+            // Fast device check - WaveIn.DeviceCount is an instant Win32 call, avoiding slow GetCapabilities
+            int deviceCount = WaveIn.DeviceCount;
+            if (deviceCount == 0)
             {
                 RaiseRecordingFailed(
                     RecordingErrorType.NoDevice,
@@ -135,36 +180,38 @@ public class AudioRecorder : IAudioRecorder
                 return Task.CompletedTask;
             }
 
-            // Determine which device to use
-            int deviceNumber = GetDeviceNumber(deviceId, devices);
+            // Determine which device to use without querying slow device capabilities
+            int deviceNumber = GetDeviceNumber(deviceId, deviceCount);
 
             try
             {
                 // Reset level normalizer for new session
                 _levelNormalizer.Reset();
 
-                // Create wave format: 16kHz, 16-bit, Mono
-                var waveFormat = new WaveFormat(SampleRate, BitsPerSample, Channels);
-
                 // Create temp file with GUID filename
                 _currentFilePath = Path.Combine(
                     Path.GetTempPath(),
                     $"murmur_{Guid.NewGuid():N}.wav");
 
-                // Initialize WaveIn
-                _waveIn = new WaveInEvent
+                // Use pre-warmed WaveInEvent if device matches, otherwise create fresh
+                if (_prewarmedWaveIn != null && _prewarmedWaveIn.DeviceNumber == deviceNumber)
                 {
-                    DeviceNumber = deviceNumber,
-                    WaveFormat = waveFormat,
-                    BufferMilliseconds = 50  // 50ms buffer for responsive level updates
-                };
+                    _waveIn = _prewarmedWaveIn;
+                    _prewarmedWaveIn = null;
+                }
+                else
+                {
+                    _prewarmedWaveIn?.Dispose();
+                    _prewarmedWaveIn = null;
+                    _waveIn = CreateWaveInEvent(deviceNumber);
+                }
 
                 _usedDeviceNumber = deviceNumber;
                 _waveIn.DataAvailable += OnDataAvailable;
                 _waveIn.RecordingStopped += OnRecordingStopped;
 
-                // Initialize file writer
-                _waveFileWriter = new WaveFileWriter(_currentFilePath, waveFormat);
+                // Initialize file writer with pre-allocated format
+                _waveFileWriter = new WaveFileWriter(_currentFilePath, RecordWaveFormat);
 
                 // Start recording
                 _recordingStartTime = DateTime.UtcNow;
@@ -238,6 +285,9 @@ public class AudioRecorder : IAudioRecorder
 
                 _isRecording = false;
 
+                // Schedule background pre-warming for next recording
+                SchedulePrewarm();
+
                 // Raise RecordingReady event
                 if (resultPath != null)
                 {
@@ -283,6 +333,8 @@ public class AudioRecorder : IAudioRecorder
         lock (_recordingLock)
         {
             CleanupRecording();
+            _prewarmedWaveIn?.Dispose();
+            _prewarmedWaveIn = null;
             _isDisposed = true;
         }
 
@@ -297,13 +349,13 @@ public class AudioRecorder : IAudioRecorder
     /// Gets the device number to use for recording.
     /// Falls back to default device if the selected device is unavailable.
     /// </summary>
-    private int GetDeviceNumber(string? deviceId, IReadOnlyList<AudioDevice> devices)
+    private static int GetDeviceNumber(string? deviceId, int deviceCount)
     {
         // Try to use the specified device
         if (!string.IsNullOrEmpty(deviceId) && int.TryParse(deviceId, out int requestedDevice))
         {
             // Verify the device exists
-            if (requestedDevice >= 0 && requestedDevice < WaveIn.DeviceCount)
+            if (requestedDevice >= 0 && requestedDevice < deviceCount)
             {
                 return requestedDevice;
             }
@@ -311,6 +363,38 @@ public class AudioRecorder : IAudioRecorder
 
         // Fall back to default device (device 0)
         return 0;
+    }
+
+    private static WaveInEvent CreateWaveInEvent(int deviceNumber)
+    {
+        return new WaveInEvent
+        {
+            DeviceNumber = deviceNumber,
+            WaveFormat = RecordWaveFormat,
+            BufferMilliseconds = 50  // 50ms buffer for responsive level updates
+        };
+    }
+
+    private void SchedulePrewarm()
+    {
+        Task.Run(() =>
+        {
+            try
+            {
+                lock (_recordingLock)
+                {
+                    if (!_isRecording && !_isDisposed && _prewarmedWaveIn == null && WaveIn.DeviceCount > 0)
+                    {
+                        int targetDevice = _usedDeviceNumber >= 0 ? _usedDeviceNumber : 0;
+                        _prewarmedWaveIn = CreateWaveInEvent(targetDevice);
+                    }
+                }
+            }
+            catch
+            {
+                // Pre-warming is best-effort
+            }
+        });
     }
 
     /// <summary>
@@ -492,6 +576,8 @@ public class AudioRecorder : IAudioRecorder
         _currentFilePath = null;
         _isRecording = false;
         _usedDeviceNumber = -1;
+        _prewarmedWaveIn?.Dispose();
+        _prewarmedWaveIn = null;
     }
 
     /// <summary>

@@ -18,6 +18,7 @@ public partial class App : Application
     private IApplicationLifecycle? _lifecycle;
     private RecordingIndicator? _recordingIndicator;
     private AppState? _appState;
+    private bool _recordingSoundPlayed;
 
     /// <summary>
     /// Gets the service provider for dependency injection.
@@ -69,6 +70,8 @@ public partial class App : Application
             // Create and wire up the recording indicator
             DebugLogger.Log("[OnStartup] Creating RecordingIndicator...\n");
             _recordingIndicator = new RecordingIndicator();
+            var windowHelper = new System.Windows.Interop.WindowInteropHelper(_recordingIndicator);
+            windowHelper.EnsureHandle();
             _appState.ShowRecordingIndicator += OnShowRecordingIndicator;
             _appState.HideRecordingIndicator += OnHideRecordingIndicator;
             _appState.ErrorOccurred += OnErrorOccurred;
@@ -88,13 +91,21 @@ public partial class App : Application
             {
                 if (args.NewState == Core.Models.PipelineState.Recording)
                 {
-                    soundEffects.PlayRecordingStart();
+                    if (!_recordingSoundPlayed)
+                    {
+                        soundEffects.PlayRecordingStart();
+                    }
+                }
+                else if (args.NewState == Core.Models.PipelineState.Idle || args.NewState == Core.Models.PipelineState.Error)
+                {
+                    _recordingSoundPlayed = false;
                 }
             };
 
             // Wire up error events to show in the indicator and play audio cue
             orchestrator.Error += (s, args) =>
             {
+                _recordingSoundPlayed = false;
                 soundEffects.PlayError();
                 Dispatcher.Invoke(() => _recordingIndicator?.ShowError(args.Message, TimeSpan.FromSeconds(4)));
             };
@@ -102,6 +113,7 @@ public partial class App : Application
             // Wire up completion to dismiss the indicator, play success cue, and record history
             orchestrator.Completed += (s, args) =>
             {
+                _recordingSoundPlayed = false;
                 Dispatcher.Invoke(() => _recordingIndicator?.Dismiss());
                 if (!args.WasCancelled && !string.IsNullOrWhiteSpace(args.Transcript))
                 {
@@ -136,6 +148,11 @@ public partial class App : Application
                 DebugLogger.Log($"\n[{DateTime.Now:HH:mm:ss}] HoldHotkeyPressed event fired! CurrentState={orchestrator.CurrentState}\n");
                 if (!orchestrator.IsActive || orchestrator.CurrentState == Core.Models.PipelineState.Error)
                 {
+                    // Instant optimistic feedback (<15ms)
+                    soundEffects.PlayRecordingStart();
+                    _recordingSoundPlayed = true;
+                    _recordingIndicator?.ShowInitializing(Core.Models.RecordingMode.Hold);
+
                     DebugLogger.Log("  Starting recording...\n");
                     var settings = settingsManager.Load();
                     await orchestrator.StartAsync(Core.Models.RecordingMode.Hold, settings.SelectedMicrophoneId);
@@ -171,6 +188,11 @@ public partial class App : Application
                 }
                 else
                 {
+                    // Instant optimistic feedback (<15ms)
+                    soundEffects.PlayRecordingStart();
+                    _recordingSoundPlayed = true;
+                    _recordingIndicator?.ShowInitializing(Core.Models.RecordingMode.Toggle);
+
                     DebugLogger.Log("  Starting recording...\n");
                     var settings = settingsManager.Load();
                     await orchestrator.StartAsync(Core.Models.RecordingMode.Toggle, settings.SelectedMicrophoneId);

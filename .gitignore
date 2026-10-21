@@ -80,3 +80,5 @@ $RECYCLE.BIN/
 # NCrunch
 *.ncrunch*
 _NCrunch_*
+
+graphify-out/
