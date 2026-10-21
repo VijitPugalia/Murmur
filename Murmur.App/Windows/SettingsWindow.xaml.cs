@@ -156,6 +156,8 @@ public partial class SettingsWindow : Window
             // Only re-register if hotkey bindings actually changed to avoid UI stalls and hook churn
             var currentConfig = hotkeyManager.CurrentConfiguration;
             if (currentConfig != null &&
+                currentConfig.UseUnifiedHotkey == settings.UseUnifiedHotkey &&
+                currentConfig.UnifiedHotkey.Equals(settings.UnifiedHotkey) &&
                 currentConfig.HoldHotkey.Equals(settings.HoldHotkey) &&
                 currentConfig.ToggleHotkey.Equals(settings.ToggleHotkey))
             {
@@ -186,7 +188,10 @@ public partial class SettingsWindow : Window
         _recordingHotkeyType = e.HotkeyType;
 
         if (e.HotkeyType == HotkeyType.Unified)
-            _viewModel.UnifiedHotkeyDisplay = "Press keys...";
+        {
+            _viewModel.IsRecordingUnifiedHotkey = true;
+            _viewModel.UnifiedHotkeyDisplay = "Press keys on your keyboard...";
+        }
         else if (e.HotkeyType == HotkeyType.Hold)
             _viewModel.HoldHotkeyDisplay = "Press keys...";
         else
@@ -216,6 +221,10 @@ public partial class SettingsWindow : Window
 
         if (!_isRecordingHotkey) return;
 
+
+
+
+
         if (e.Key == Key.Escape)
         {
             CancelHotkeyRecording();
@@ -224,12 +233,15 @@ public partial class SettingsWindow : Window
         }
 
         var modifiers = GetCurrentModifiers();
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+
 
         // If a modifier key itself is pressed down, update display with live held modifiers
-        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
-            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
-            e.Key == Key.LeftShift || e.Key == Key.RightShift ||
-            e.Key == Key.LWin || e.Key == Key.RWin || e.Key == Key.System)
+        if (key == Key.LeftCtrl || key == Key.RightCtrl ||
+            key == Key.LeftAlt || key == Key.RightAlt ||
+            key == Key.LeftShift || key == Key.RightShift ||
+            key == Key.LWin || key == Key.RWin)
         {
             var displayText = modifiers != CoreModifierKeys.None
                 ? $"{new HotkeyBinding { Modifiers = modifiers, Key = VirtualKey.None }} (Release or press key)"
@@ -246,7 +258,7 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        var virtualKey = ConvertToVirtualKey(e.Key);
+        var virtualKey = ConvertToVirtualKey(key);
         if (virtualKey == null)
         {
             if (_recordingHotkeyType == HotkeyType.Unified)
@@ -276,6 +288,7 @@ public partial class SettingsWindow : Window
         var binding = new HotkeyBinding { Modifiers = modifiers, Key = virtualKey.Value };
         _viewModel.SetRecordedHotkey(_recordingHotkeyType, binding);
         _isRecordingHotkey = false;
+        _viewModel.IsRecordingUnifiedHotkey = false;
         e.Handled = true;
     }
 
@@ -285,13 +298,20 @@ public partial class SettingsWindow : Window
 
         if (!_isRecordingHotkey) return;
 
+
+
+
+
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
         // If the user released a modifier key (e.g. Win or Ctrl)
-        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
-            e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
-            e.Key == Key.LeftShift || e.Key == Key.RightShift ||
-            e.Key == Key.LWin || e.Key == Key.RWin || e.Key == Key.System)
+        if (key == Key.LeftCtrl || key == Key.RightCtrl ||
+            key == Key.LeftAlt || key == Key.RightAlt ||
+            key == Key.LeftShift || key == Key.RightShift ||
+            key == Key.LWin || key == Key.RWin)
         {
             var modifiers = GetCurrentModifiers();
+
             // Include the key that was just released into the modifier set
             if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) modifiers |= CoreModifierKeys.Ctrl;
             if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt || e.Key == Key.System) modifiers |= CoreModifierKeys.Alt;
@@ -303,6 +323,7 @@ public partial class SettingsWindow : Window
                 var binding = new HotkeyBinding { Modifiers = modifiers, Key = VirtualKey.None };
                 _viewModel.SetRecordedHotkey(_recordingHotkeyType, binding);
                 _isRecordingHotkey = false;
+        _viewModel.IsRecordingUnifiedHotkey = false;
                 e.Handled = true;
             }
         }
@@ -311,7 +332,12 @@ public partial class SettingsWindow : Window
     private void CancelHotkeyRecording()
     {
         if (!_isRecordingHotkey) return;
+
+
+
+
         _isRecordingHotkey = false;
+        _viewModel.IsRecordingUnifiedHotkey = false;
         if (_recordingHotkeyType == HotkeyType.Unified)
             _viewModel.UnifiedHotkeyDisplay = _viewModel.UnifiedHotkey.ToString();
         else if (_recordingHotkeyType == HotkeyType.Hold)

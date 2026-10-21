@@ -247,6 +247,8 @@ public class ApplicationLifecycle : IApplicationLifecycle
             // Build hotkey configuration from settings
             var config = new HotkeyConfiguration
             {
+                UseUnifiedHotkey = settings.UseUnifiedHotkey,
+                UnifiedHotkey = settings.UnifiedHotkey,
                 HoldHotkey = settings.HoldHotkey,
                 ToggleHotkey = settings.ToggleHotkey
             };

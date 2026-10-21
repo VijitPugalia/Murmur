@@ -421,6 +421,8 @@ public partial class App : Application
                     
                     var config = new Core.Models.HotkeyConfiguration
                     {
+                        UseUnifiedHotkey = settings.UseUnifiedHotkey,
+                        UnifiedHotkey = settings.UnifiedHotkey,
                         HoldHotkey = settings.HoldHotkey,
                         ToggleHotkey = settings.ToggleHotkey,
                         PasteAgainHotkey = null

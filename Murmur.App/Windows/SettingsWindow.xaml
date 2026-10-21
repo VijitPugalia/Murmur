@@ -322,20 +322,157 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Active Shortcut:" FontWeight="SemiBold" FontSize="12" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                         <TextBlock Grid.Column="1" Text="{Binding UnifiedHotkeyDisplay}" FontWeight="Bold" FontSize="16" FontFamily="Consolas, Segoe UI" Foreground="#0078D4" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="2" Content="🎙️ Click to Record via Keyboard" Command="{Binding RecordUnifiedHotkeyCommand}" Style="{StaticResource HotkeyButton}" Padding="14,6" Cursor="Hand"/>
+                                        <Button Grid.Column="2" Command="{Binding RecordUnifiedHotkeyCommand}" Padding="14,6" Cursor="Hand">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource HotkeyButton}">
+                                                    <Setter Property="Content" Value="🎙️ Click to Record via Keyboard"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRecordingUnifiedHotkey}" Value="True">
+                                                            <Setter Property="Content" Value="🔴 Listening... Press keys (Esc to cancel)"/>
+                                                            <Setter Property="Background" Value="#FEE2E2"/>
+                                                            <Setter Property="Foreground" Value="#DC2626"/>
+                                                            <Setter Property="BorderBrush" Value="#EF4444"/>
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
                                     </Grid>
                                 </Border>
 
                                 <!-- 1-Click Popular Presets -->
-                                <TextBlock Text="Quick Presets (Click to apply):" FontWeight="SemiBold" FontSize="11" Foreground="#475569" Margin="0,0,0,6"/>
+                                <TextBlock Text="Quick Presets (Click to apply immediately):" FontWeight="SemiBold" FontSize="11" Foreground="#475569" Margin="0,0,0,6"/>
                                 <WrapPanel>
-                                    <Button Content="⚡ Ctrl + Windows (Default)" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Win" Margin="0,0,6,6" Padding="10,5" Background="#EBF3FC" BorderBrush="#0078D4" BorderThickness="1" Foreground="#0078D4" FontWeight="SemiBold" Cursor="Hand"/>
-                                    <Button Content="Alt + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Alt+Space" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" FontWeight="SemiBold" Cursor="Hand"/>
-                                    <Button Content="Ctrl + Shift + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Shift+Space" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
-                                    <Button Content="Ctrl + Space" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Space" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
-                                    <Button Content="Win + H" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Win+H" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
-                                    <Button Content="F8" Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="F8" Margin="0,0,6,6" Padding="10,5" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
+                                    <Button Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Win" Margin="0,0,6,6" Padding="12,6" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="⚡ Ctrl + Windows"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                <Setter Property="Foreground" Value="#334155"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCtrlWinSelected}" Value="True">
+                                                        <Setter Property="Content" Value="✓ ⚡ Ctrl + Windows (Active)"/>
+                                                        <Setter Property="Background" Value="#0078D4"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="#005A9E"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Alt+Space" Margin="0,0,6,6" Padding="12,6" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="Alt + Space"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                <Setter Property="Foreground" Value="#334155"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsAltSpaceSelected}" Value="True">
+                                                        <Setter Property="Content" Value="✓ Alt + Space (Active)"/>
+                                                        <Setter Property="Background" Value="#0078D4"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="#005A9E"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Shift+Space" Margin="0,0,6,6" Padding="12,6" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="Ctrl + Shift + Space"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                <Setter Property="Foreground" Value="#334155"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCtrlShiftSpaceSelected}" Value="True">
+                                                        <Setter Property="Content" Value="✓ Ctrl + Shift + Space (Active)"/>
+                                                        <Setter Property="Background" Value="#0078D4"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="#005A9E"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Ctrl+Space" Margin="0,0,6,6" Padding="12,6" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="Ctrl + Space"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                <Setter Property="Foreground" Value="#334155"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCtrlSpaceSelected}" Value="True">
+                                                        <Setter Property="Content" Value="✓ Ctrl + Space (Active)"/>
+                                                        <Setter Property="Background" Value="#0078D4"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="#005A9E"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="Win+H" Margin="0,0,6,6" Padding="12,6" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="Win + H"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                <Setter Property="Foreground" Value="#334155"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsWinHSelected}" Value="True">
+                                                        <Setter Property="Content" Value="✓ Win + H (Active)"/>
+                                                        <Setter Property="Background" Value="#0078D4"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="#005A9E"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Command="{Binding ApplyPresetHotkeyCommand}" CommandParameter="F8" Margin="0,0,6,6" Padding="12,6" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="F8"/>
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                <Setter Property="Foreground" Value="#334155"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsF8Selected}" Value="True">
+                                                        <Setter Property="Content" Value="✓ F8 (Active)"/>
+                                                        <Setter Property="Background" Value="#0078D4"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="#005A9E"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
                                 </WrapPanel>
+
+                                <!-- Status Confirmation Banner -->
+                                <Border Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
+                                        Visibility="{Binding HasHotkeyStatusMessage, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" FontWeight="Bold" Foreground="#16A34A" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding HotkeyStatusMessage}" FontWeight="SemiBold" FontSize="12" Foreground="#15803D"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
 

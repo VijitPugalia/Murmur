@@ -197,12 +197,61 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             if (SetProperty(ref _unifiedHotkey, value))
             {
                 OnPropertyChanged(nameof(UnifiedHotkeyDisplay));
+                NotifyPresetSelectionChanged();
                 MarkChanged();
             }
         }
     }
 
     private string _unifiedHotkeyDisplay = string.Empty;
+
+    public bool IsCtrlWinSelected =>
+        UseUnifiedHotkey &&
+        _unifiedHotkey.Modifiers == (CoreModifierKeys.Ctrl | CoreModifierKeys.Win) &&
+        _unifiedHotkey.Key == VirtualKey.None;
+
+    public bool IsAltSpaceSelected =>
+        UseUnifiedHotkey &&
+        _unifiedHotkey.Modifiers == CoreModifierKeys.Alt &&
+        _unifiedHotkey.Key == VirtualKey.Space;
+
+    public bool IsCtrlShiftSpaceSelected =>
+        UseUnifiedHotkey &&
+        _unifiedHotkey.Modifiers == (CoreModifierKeys.Ctrl | CoreModifierKeys.Shift) &&
+        _unifiedHotkey.Key == VirtualKey.Space;
+
+    public bool IsCtrlSpaceSelected =>
+        UseUnifiedHotkey &&
+        _unifiedHotkey.Modifiers == CoreModifierKeys.Ctrl &&
+        _unifiedHotkey.Key == VirtualKey.Space;
+
+    public bool IsWinHSelected =>
+        UseUnifiedHotkey &&
+        _unifiedHotkey.Modifiers == CoreModifierKeys.Win &&
+        _unifiedHotkey.Key == VirtualKey.H;
+
+    public bool IsF8Selected =>
+        UseUnifiedHotkey &&
+        _unifiedHotkey.Modifiers == CoreModifierKeys.None &&
+        _unifiedHotkey.Key == VirtualKey.F8;
+
+    private bool _isRecordingUnifiedHotkey;
+    public bool IsRecordingUnifiedHotkey
+    {
+        get => _isRecordingUnifiedHotkey;
+        set => SetProperty(ref _isRecordingUnifiedHotkey, value);
+    }
+
+    public void NotifyPresetSelectionChanged()
+    {
+        OnPropertyChanged(nameof(IsCtrlWinSelected));
+        OnPropertyChanged(nameof(IsAltSpaceSelected));
+        OnPropertyChanged(nameof(IsCtrlShiftSpaceSelected));
+        OnPropertyChanged(nameof(IsCtrlSpaceSelected));
+        OnPropertyChanged(nameof(IsWinHSelected));
+        OnPropertyChanged(nameof(IsF8Selected));
+        OnPropertyChanged(nameof(UnifiedHotkeyDisplay));
+    }
     public string UnifiedHotkeyDisplay
     {
         get => string.IsNullOrEmpty(_unifiedHotkeyDisplay) ? _unifiedHotkey.ToString() : _unifiedHotkeyDisplay;
@@ -219,6 +268,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             {
                 OnPropertyChanged(nameof(UseUnifiedHotkey));
                 OnPropertyChanged(nameof(UseSeparateHotkeys));
+                NotifyPresetSelectionChanged();
                 MarkChanged();
             }
         }
@@ -360,6 +410,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             if (value == null) return;
             _selectedTogglePreset = value;
             OnPropertyChanged(nameof(SelectedTogglePreset));
+            NotifyPresetSelectionChanged();
 
             if (!value.IsCustom && value.Binding != null)
             {
@@ -885,7 +936,9 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             UnifiedHotkey = settings.UnifiedHotkey.Clone();
             UnifiedHotkeyDisplay = UnifiedHotkey.ToString();
             HoldHotkey = settings.HoldHotkey.Clone();
-            HoldHotkeyDisplay = HoldHotkey.ToString();
+            IsRecordingUnifiedHotkey = false;
+        UnifiedHotkeyDisplay = UnifiedHotkey.ToString();
+        HoldHotkeyDisplay = HoldHotkey.ToString();
             _selectedHoldPreset = null;
             OnPropertyChanged(nameof(SelectedHoldPreset));
 
@@ -893,6 +946,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             ToggleHotkeyDisplay = ToggleHotkey.ToString();
             _selectedTogglePreset = null;
             OnPropertyChanged(nameof(SelectedTogglePreset));
+            NotifyPresetSelectionChanged();
         }
         finally
         {
@@ -1273,7 +1327,8 @@ public class SettingsViewModel : ViewModelBase, IDisposable
 
     private void StartRecordUnifiedHotkey()
     {
-        UnifiedHotkeyDisplay = "Press keys...";
+        IsRecordingUnifiedHotkey = true;
+        UnifiedHotkeyDisplay = "Press keys on your keyboard...";
         RequestHotkeyRecording?.Invoke(this, new HotkeyRecordingEventArgs(HotkeyType.Unified));
     }
 
@@ -1306,7 +1361,11 @@ public class SettingsViewModel : ViewModelBase, IDisposable
             case HotkeyType.Unified:
                 SetProperty(ref _unifiedHotkey, binding, nameof(UnifiedHotkey));
                 UnifiedHotkeyDisplay = binding.ToString();
-                HotkeyStatusMessage = $"✓ Unified shortcut set to {binding}!";
+                SetProperty(ref _holdHotkey, binding.Clone(), nameof(HoldHotkey));
+                HoldHotkeyDisplay = binding.ToString();
+                IsRecordingUnifiedHotkey = false;
+                NotifyPresetSelectionChanged();
+                HotkeyStatusMessage = $"✓ Active shortcut updated to {binding}!";
                 break;
             case HotkeyType.Hold:
                 SetProperty(ref _holdHotkey, binding, nameof(HoldHotkey));
@@ -1320,6 +1379,7 @@ public class SettingsViewModel : ViewModelBase, IDisposable
                 ToggleHotkeyDisplay = binding.ToString();
                 _selectedTogglePreset = null;
                 OnPropertyChanged(nameof(SelectedTogglePreset));
+            NotifyPresetSelectionChanged();
                 HotkeyStatusMessage = $"✓ Toggle Mode shortcut set to {binding}!";
                 break;
         }
@@ -1399,6 +1459,8 @@ public class SettingsViewModel : ViewModelBase, IDisposable
 
     private void CancelRecordHotkey()
     {
+        IsRecordingUnifiedHotkey = false;
+        UnifiedHotkeyDisplay = UnifiedHotkey.ToString();
         HoldHotkeyDisplay = HoldHotkey.ToString();
         ToggleHotkeyDisplay = ToggleHotkey.ToString();
     }

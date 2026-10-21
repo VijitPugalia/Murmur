@@ -1149,5 +1149,77 @@ public class SettingsViewModelTests
         Assert.True(vm.SelectedHoldPreset.IsCustom);
     }
 
+    [Fact]
+    public void ApplyPresetHotkeyCommand_AltSpace_UpdatesUnifiedAndHoldAndVisualSelection()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        vm.UseUnifiedHotkey = true;
+
+        // Act
+        vm.ApplyPresetHotkeyCommand.Execute("Alt+Space");
+
+        // Assert
+        Assert.Equal(ModifierKeys.Alt, vm.UnifiedHotkey.Modifiers);
+        Assert.Equal(VirtualKey.Space, vm.UnifiedHotkey.Key);
+        Assert.Equal("Alt+Space", vm.UnifiedHotkeyDisplay);
+        Assert.Equal(ModifierKeys.Alt, vm.HoldHotkey.Modifiers);
+        Assert.Equal(VirtualKey.Space, vm.HoldHotkey.Key);
+        Assert.True(vm.IsAltSpaceSelected);
+        Assert.False(vm.IsCtrlWinSelected);
+        Assert.False(vm.IsCtrlSpaceSelected);
+        Assert.True(vm.HasHotkeyStatusMessage);
+        Assert.Contains("Alt+Space", vm.HotkeyStatusMessage);
+    }
+
+    [Fact]
+    public void ApplyPresetHotkeyCommand_AllPresets_SelectsExpectedProperties()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        vm.UseUnifiedHotkey = true;
+
+        // Ctrl+Win
+        vm.ApplyPresetHotkeyCommand.Execute("Ctrl+Win");
+        Assert.True(vm.IsCtrlWinSelected);
+        Assert.False(vm.IsAltSpaceSelected);
+
+        // Ctrl+Space
+        vm.ApplyPresetHotkeyCommand.Execute("Ctrl+Space");
+        Assert.True(vm.IsCtrlSpaceSelected);
+        Assert.False(vm.IsCtrlWinSelected);
+
+        // Ctrl+Shift+Space
+        vm.ApplyPresetHotkeyCommand.Execute("Ctrl+Shift+Space");
+        Assert.True(vm.IsCtrlShiftSpaceSelected);
+
+        // Win+H
+        vm.ApplyPresetHotkeyCommand.Execute("Win+H");
+        Assert.True(vm.IsWinHSelected);
+
+        // F8
+        vm.ApplyPresetHotkeyCommand.Execute("F8");
+        Assert.True(vm.IsF8Selected);
+    }
+
+    [Fact]
+    public void RecordUnifiedHotkeyCommand_SetsIsRecordingUnifiedHotkeyTrue()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        Assert.False(vm.IsRecordingUnifiedHotkey);
+
+        // Act
+        vm.RecordUnifiedHotkeyCommand.Execute(null);
+
+        // Assert
+        Assert.True(vm.IsRecordingUnifiedHotkey);
+        Assert.Contains("Press keys", vm.UnifiedHotkeyDisplay);
+
+        // Cancel
+        vm.CancelRecordHotkeyCommand.Execute(null);
+        Assert.False(vm.IsRecordingUnifiedHotkey);
+    }
+
     #endregion
 }

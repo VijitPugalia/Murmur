@@ -68,6 +68,14 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
         DebugLogger.Log($"[{DateTime.Now:HH:mm:ss.fff}] {message}\n");
     }
 
+    private static HotkeyBinding GetEffectiveHoldHotkey(HotkeyConfiguration? config)
+    {
+        if (config == null) return new HotkeyBinding();
+        return (config.UseUnifiedHotkey && config.UnifiedHotkey != null)
+            ? config.UnifiedHotkey
+            : config.HoldHotkey;
+    }
+
     public bool RegisterHotkeys(HotkeyConfiguration config)
     {
         if (config == null) throw new ArgumentNullException(nameof(config));
@@ -94,11 +102,12 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
             // Pure modifier combinations like Ctrl+Win have Key == VirtualKey.None (vk=0),
             // which RegisterHotKey rejects with ERROR_INVALID_PARAMETER (87). Those are handled
             // reliably via our low-level keyboard hook.
-            if (config.HoldHotkey.Key != VirtualKey.None)
+            var effectiveHold = GetEffectiveHoldHotkey(config);
+            if (effectiveHold.Key != VirtualKey.None)
             {
-                var holdMods = GetModifiers(config.HoldHotkey.Modifiers);
-                var holdKey = (uint)config.HoldHotkey.Key;
-                Log($"Registering Hold with RegisterHotKey: {config.HoldHotkey} (mods=0x{holdMods:X}, key=0x{holdKey:X})");
+                var holdMods = GetModifiers(effectiveHold.Modifiers);
+                var holdKey = (uint)effectiveHold.Key;
+                Log($"Registering Hold with RegisterHotKey: {effectiveHold} (mods=0x{holdMods:X}, key=0x{holdKey:X})");
                 if (!RegisterHotKey(IntPtr.Zero, HOLD_HOTKEY_ID, holdMods, holdKey))
                 {
                     var err = Marshal.GetLastWin32Error();
@@ -111,7 +120,7 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
             }
             else
             {
-                Log($"Hold hotkey {config.HoldHotkey} is modifier-only; handled via low-level hook.");
+                Log($"Hold hotkey {effectiveHold} is modifier-only; handled via low-level hook.");
             }
 
             // Register Toggle hotkey
@@ -176,7 +185,7 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
                 case HOLD_HOTKEY_ID:
                     Log("Processing HOLD hotkey press");
                     _isHoldActive = true;
-                    OnHoldHotkeyPressed(_configuration.HoldHotkey);
+                    OnHoldHotkeyPressed(GetEffectiveHoldHotkey(_configuration));
                     break;
                 case TOGGLE_HOTKEY_ID:
                     Log("Processing TOGGLE hotkey press");
@@ -338,7 +347,7 @@ public class WpfHotkeyManager : IHotkeyManager, IDisposable
             bool isKeyDown = msgType == WM_KEYDOWN || msgType == WM_SYSKEYDOWN;
             bool isKeyUp = msgType == WM_KEYUP || msgType == WM_SYSKEYUP;
 
-            var holdHotkey = _configuration.HoldHotkey;
+            var holdHotkey = GetEffectiveHoldHotkey(_configuration);
 
             // Handle HOLD hotkey key-down
             if (isKeyDown && !_isHoldActive && holdHotkey != null && !holdHotkey.IsDisabled)
