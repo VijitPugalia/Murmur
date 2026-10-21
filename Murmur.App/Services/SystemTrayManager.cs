@@ -191,7 +191,7 @@ public class SystemTrayManager : ISystemTrayManager
         
         _taskbarIcon = new TaskbarIcon
         {
-            ToolTipText = _isDevBuild ? "Murmur Dev - Voice Dictation" : "Murmur - Voice Dictation",
+            ToolTipText = _isDevBuild ? "Murmur Dev - Powered by Vijit Pugalia" : "Murmur - Powered by Vijit Pugalia",
             ContextMenu = _contextMenu,
             Visibility = _showMenuBarIcon ? Visibility.Visible : Visibility.Collapsed,
             Icon = GetIdleIcon()
@@ -507,7 +507,7 @@ public class SystemTrayManager : ISystemTrayManager
         // Version header (matching macOS "Murmur v{version}")
         var versionItem = new MenuItem 
         { 
-            Header = $"{(_isDevBuild ? "Murmur Dev" : "Murmur")} v{GetAppVersion()}",
+            Header = $"{(_isDevBuild ? "Murmur Dev" : "Murmur")} v{GetAppVersion()} • Powered by Vijit Pugalia",
             IsEnabled = false 
         };
         menu.Items.Add(versionItem);

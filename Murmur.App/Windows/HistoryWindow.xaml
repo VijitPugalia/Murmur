@@ -173,6 +173,12 @@
         </Border>
 
         <!-- Footer -->
-        <TextBlock Grid.Row="3" Text="Press Esc to close • Click 'Paste Again' to insert text into previous window" FontSize="11" Foreground="#999999" Margin="4,10,0,0"/>
+        <DockPanel Grid.Row="3" Margin="4,10,4,0" LastChildFill="False">
+            <TextBlock Text="Press Esc to close • Click 'Paste Again' to insert text" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Powered by " FontSize="11" Foreground="#888888"/>
+                <TextBlock Text="Vijit Pugalia" FontSize="11" FontWeight="SemiBold" Foreground="#0078D4"/>
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>

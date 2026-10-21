@@ -255,13 +255,31 @@
                     </RadioButton>
                 </StackPanel>
 
-                <!-- Active Shortcut Quick Pill at Sidebar Bottom -->
-                <Border Grid.Row="2" Background="#EFF6FF" BorderBrush="#DBEAFE" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="12,12">
-                    <StackPanel>
-                        <TextBlock Text="Active Shortcut:" FontSize="10" FontWeight="SemiBold" Foreground="#3B82F6" Margin="0,0,0,2"/>
-                        <TextBlock Text="{Binding UnifiedHotkeyDisplay}" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="13" Foreground="#1D4ED8"/>
-                    </StackPanel>
-                </Border>
+                <!-- Sidebar Bottom: Active Shortcut & Creator Attribution -->
+                <StackPanel Grid.Row="2" Margin="12,6,12,12">
+                    <!-- Active Shortcut Quick Pill -->
+                    <Border Background="#EFF6FF" BorderBrush="#DBEAFE" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Active Shortcut:" FontSize="10" FontWeight="SemiBold" Foreground="#3B82F6" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding UnifiedHotkeyDisplay}" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="13" Foreground="#1D4ED8"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Creator Card with Photo -->
+                    <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="38" Height="38" CornerRadius="19" BorderBrush="#0078D4" BorderThickness="2" Margin="0,0,10,0">
+                                <Border.Background>
+                                    <ImageBrush ImageSource="/Resources/creator.png" Stretch="UniformToFill"/>
+                                </Border.Background>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Powered by" FontSize="10" FontWeight="SemiBold" Foreground="#64748B"/>
+                                <TextBlock Text="Vijit Pugalia" FontSize="13" FontWeight="Bold" Foreground="#0F172A"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -711,6 +729,39 @@
                                 <Separator Margin="0,4,0,12" Background="#E2E8F0"/>
                                 <Button Content="Reset All Settings to Factory Defaults" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButton}" Foreground="#DC2626" HorizontalAlignment="Left"/>
                             </StackPanel>
+                        </Border>
+
+                        <!-- About Murmur & Creator Attribution Card -->
+                        <Border Style="{StaticResource SettingsCard}" Background="#F8FAFC" BorderBrush="#CBD5E1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Circular Portrait Photo -->
+                                <Border Grid.Column="0" Width="68" Height="68" CornerRadius="34" BorderBrush="#0078D4" BorderThickness="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1" Color="#000000"/>
+                                    </Border.Effect>
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="/Resources/creator.png" Stretch="UniformToFill"/>
+                                    </Border.Background>
+                                </Border>
+
+                                <!-- App Details & Attribution -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <TextBlock Text="Murmur" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
+                                        <Border Background="#E2E8F0" CornerRadius="4" Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="v1.1" FontSize="10" FontWeight="SemiBold" Foreground="#475569"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Created &amp; Powered by Vijit Pugalia" FontSize="13" FontWeight="SemiBold" Foreground="#0078D4" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Free and open source AI voice dictation with local intelligence, unified hotkeys, and privacy-first clipboard protection." FontSize="12" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                    <TextBlock Text="GitHub: https://github.com/VijitPugalia/Murmur" FontSize="11" Foreground="#475569" FontFamily="Consolas, Segoe UI"/>
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
