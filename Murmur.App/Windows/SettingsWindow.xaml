@@ -228,7 +228,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Murmur" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
                                 <Border Background="#E2E8F0" CornerRadius="4" Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="v1.0" FontSize="10" FontWeight="SemiBold" Foreground="#475569"/>
+                                    <TextBlock Text="v1.1" FontSize="10" FontWeight="SemiBold" Foreground="#475569"/>
                                 </Border>
                             </StackPanel>
                             <TextBlock Text="Voice Dictation" FontSize="11" Foreground="#64748B"/>

@@ -31,8 +31,8 @@ flowchart LR
 
 | Shortcut | Mode | Behavior |
 | :--- | :--- | :--- |
-| <kbd>Ctrl</kbd> + <kbd>Win</kbd> | **Hold-to-Talk (Default)** | Speak while holding; auto-transcribes and pastes on release |
-| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd> | **Toggle Mode** | Press once to start recording, press again to finish |
+| <kbd>Ctrl</kbd> + <kbd>Win</kbd> *(or custom)* | **⚡ Unified Shortcut (Default)** | **Hold > 400ms**: Speak and release to paste<br>**Double-tap**: Hands-free toggle mode |
+| <kbd>Alt</kbd> + <kbd>Space</kbd> / <kbd>Win</kbd> + <kbd>H</kbd> | **1-Click Presets** | Quickly switch to popular keyboard combinations |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> | **Paste Again** | Re-pastes the last formatted transcript instantly |
 
 > *All hotkeys can be customized directly in the **Settings** window under **Dictation Shortcuts** — choose from popular presets or configure your own custom modifier and key combinations.*
@@ -62,7 +62,7 @@ Murmur is packaged as a **self-contained standalone Windows executable** — no 
 | File | Size | Description |
 | :--- | :--- | :--- |
 | **`Murmur.exe`** | **~91 MB** | **Standalone Executable** — Just download and double-click to run! |
-| **`Murmur-Windows-1.0.0-win-x64.zip`** | **~85 MB** | Compressed release archive |
+| **`Murmur-Windows-1.1.0-win-x64.zip`** | **~85 MB** | Compressed release archive |
 
 ### Installation Steps:
 1. **Download** the latest `Murmur.exe` directly from [GitHub Releases](https://github.com/VijitPugalia/Murmur/releases).
@@ -92,7 +92,7 @@ dotnet test Murmur.sln
 .\build-release.ps1 -X64Only
 ```
 
-Output binary will be located in `releases/v1.0.0/`.
+Output binary will be located in `releases/v1.1.0/`.
 
 ---
 
